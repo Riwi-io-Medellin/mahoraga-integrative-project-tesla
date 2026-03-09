@@ -49,10 +49,18 @@ function applyTheme(theme, themeButtons) {
   const isLightTheme = theme === "light";
 
   document.body.classList.toggle("light-mode", isLightTheme);
+  syncLordIconColors(isLightTheme);
   localStorage.setItem(THEME_STORAGE_KEY, theme);
 
   themeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.theme === theme);
+  });
+}
+
+function syncLordIconColors(isLightTheme) {
+  const primaryColor = isLightTheme ? "#1a1a1a" : "#ffffff";
+  document.querySelectorAll("lord-icon[data-dynamic-color]").forEach((icon) => {
+    icon.setAttribute("colors", `primary:${primaryColor}`);
   });
 }
 

@@ -82,6 +82,27 @@ function initTechnologySelector() {
   }
 }
 
+function initSidebarToggle() {
+  const toggleButton = document.querySelector(".hamburger-toggle");
+  const sidebar = document.querySelector(".sidebar");
+  const roadmapContainer = document.querySelector(".roadmap-container");
+
+  if (!toggleButton || !sidebar) {
+    return;
+  }
+
+  toggleButton.addEventListener("click", () => {
+    const isCollapsed = sidebar.classList.toggle("collapsed");
+    roadmapContainer?.classList.toggle("sidebar-collapsed", isCollapsed);
+
+    const icon = toggleButton.querySelector(".icon-menu");
+
+    if (icon) {
+      icon.setAttribute("state", isCollapsed ? "out" : "in");
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const user = requireLoggedInUser("../index.html");
 
@@ -90,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initRoadmapDrag();
+  initSidebarToggle();
   initDashboardIdentity();
   initPhotoProfile();
   initDashboardViewManager();

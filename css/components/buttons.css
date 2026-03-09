@@ -1,78 +1,160 @@
+/* CONTENEDOR */
+
 .technologies {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 30px;
 }
+
+
+/* BOTÓN BASE */
 
 .tech-btn {
-  width: 100%;
-  padding: 16px 18px;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    
+    /* Efecto glassmorphism */
+    backdrop-filter: blur(10px);
+    background-size: 200% 200%;
+    background-position: 0% 0%;
 }
+
+.tech-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    opacity: 0.1;
+    transition: left 0.3s ease;
+    z-index: -1;
+}
+
+/* HOVER */
 
 .tech-btn:hover {
-  transform: translateY(-4px) translateX(4px);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
+    transform: translateY(-4px) translateX(4px);
+    border-color: rgba(255, 255, 255, 0.2);
+    filter: brightness(1.2);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
-.tech-btn.active {
-  outline: 2px solid rgba(255, 255, 255, 0.2);
+.tech-btn:active {
+    transform: translateY(-2px) translateX(2px);
 }
+
+.python:hover {
+    background: linear-gradient(135deg, #3777ab, #2c5aa0);
+    
+}
+
+.css:hover {
+    background: linear-gradient(135deg, #2965f1, #1e4ecb);
+  
+}
+
+.html:hover {
+    background: linear-gradient(135deg, #e34f26, #d43a1a);
+
+}
+
+.javascript:hover {
+    background: linear-gradient(135deg, #ac9800, #af9e00);
+
+}
+
+.sql:hover {
+    background: linear-gradient(135deg, #293c92, #1e2a6b);
+   
+}
+
+/* BACKGROUND BOTONES */
 
 .python {
-  background: linear-gradient(135deg, rgba(55, 119, 171, 0.3), rgba(44, 90, 160, 0.2));
-  border-color: rgba(55, 119, 171, 0.3);
+    background: linear-gradient(135deg, rgba(55, 119, 171, 0.3), rgba(44, 90, 160, 0.2));
+    border-color: rgba(55, 119, 171, 0.3);
 }
 
 .html {
-  background: linear-gradient(135deg, rgba(227, 79, 38, 0.3), rgba(212, 58, 26, 0.2));
-  border-color: rgba(227, 79, 38, 0.3);
+    background: linear-gradient(135deg, rgba(227, 79, 38, 0.3), rgba(212, 58, 26, 0.2));
+    border-color: rgba(227, 79, 38, 0.3);
 }
 
 .css {
-  background: linear-gradient(135deg, rgba(41, 101, 241, 0.3), rgba(30, 78, 203, 0.2));
-  border-color: rgba(41, 101, 241, 0.3);
+    background: linear-gradient(135deg, rgba(41, 101, 241, 0.3), rgba(30, 78, 203, 0.2));
+    border-color: rgba(41, 101, 241, 0.3);
 }
 
 .javascript {
-  background: linear-gradient(135deg, rgba(247, 222, 30, 0.3), rgba(172, 152, 0, 0.25));
-  border-color: rgba(247, 222, 30, 0.3);
+    background: linear-gradient(135deg, rgba(247, 222, 30, 0.3), rgba(232, 212, 16, 0.2));
+    border-color: rgba(247, 222, 30, 0.3);
 }
 
 .sql {
-  background: linear-gradient(135deg, rgba(41, 60, 146, 0.3), rgba(30, 42, 107, 0.2));
-  border-color: rgba(41, 60, 146, 0.3);
+    background: linear-gradient(135deg, rgba(41, 60, 146, 0.3), rgba(30, 42, 107, 0.2));
+    border-color: rgba(41, 60, 146, 0.3);
 }
 
-.tech-btn span:first-of-type {
-  margin-left: 12px;
-  margin-right: auto;
+/* TEXTO */
+
+.tech-name {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
 }
 
-.tech-btn img {
-  object-fit: contain;
+.tech-name img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: brightness(1.1);
+    transition: transform 0.3s ease;
+}
+
+.tech-btn:hover .tech-name img {
+    transform: scale(1.15) rotate(5deg);
 }
 
 .percent {
-  font-size: 13px;
-  opacity: 0.85;
-  font-weight: 700;
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
+    font-size: 13px;
+    opacity: 0.8;
+    font-weight: 700;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
 }
+
+/* COLLAPSED SIDEBAR */
+.sidebar.collapsed .technologies {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .tech-btn {
+    width: auto;
+    padding: 0;
+    margin: 0;
+}
+

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
     <title>Mahoraga Dashboard</title>
     <link rel="icon" type="image/png" href="../img/logo.png">
 
@@ -23,6 +24,17 @@
 
         <!-- ================= SIDEBAR ================= -->
         <aside class="sidebar">
+            <button class="hamburger-toggle" title="Toggle Sidebar" type="button" aria-label="Toggle sidebar">
+                <lord-icon
+                    class="icon-menu"
+                    data-dynamic-color="true"
+                    src="../json-icons/system-solid-35-compare-hover-compare (1).json"
+                    trigger="morph"
+                    state="in"
+                    colors="primary:#2ecc71"
+                    style="width:32px;height:32px;">
+                </lord-icon>
+            </button>
 
             <button title="Profile" class="user-section">
 
@@ -86,7 +98,13 @@
             </button>
 
             <button title="Settings" class="sidebar-settings" type="button" aria-label="Open settings">
-                <i class="bi bi-gear-fill"></i>
+                <lord-icon
+                    data-dynamic-color="true"
+                    src="../json-icons/system-solid-63-settings-cog-hover-cog-3.json"
+                    trigger="hover"
+                    colors="primary:#ffffff"
+                    style="width:35px;height:35px;">
+                </lord-icon>
             </button>
 
         </aside>
@@ -124,7 +142,13 @@
             <div class="detail-header">
                 <h2 class="detail-title">Select a topic</h2>
                 <button class="close-panel" type="button" aria-label="Close detail panel">
-                    <i class="bi bi-x-lg"></i>
+                    <lord-icon
+                        data-dynamic-color="true"
+                        src="../json-icons/system-solid-29-cross-hover-cross-1.json"
+                        trigger="hover"
+                        colors="primary:#ffffff"
+                        style="width:30px;height:30px;">
+                    </lord-icon>
                 </button>
             </div>
 
@@ -151,7 +175,14 @@
 
             <div class="detail-footer">
                 <button class="interview-btn" type="button">
-                    Interview →
+                    <span>Interview</span>
+                    <lord-icon
+                        data-dynamic-color="true"
+                        src="../json-icons/system-solid-47-chat-hover-chat.json"
+                        trigger="hover"
+                        colors="primary:#ffffff"
+                        style="width:24px;height:24px;">
+                    </lord-icon>
                 </button>
             </div>
 
@@ -183,7 +214,13 @@
 
             <article class="exit-profile">
                 <div class="exitLogo">
-                    <i class="bi bi-x"></i>
+                    <lord-icon
+                        data-dynamic-color="true"
+                        src="../json-icons/system-solid-29-cross-hover-cross-1.json"
+                        trigger="hover"
+                        colors="primary:#ffffff"
+                        style="width:42px;height:42px;">
+                    </lord-icon>
                 </div>
             </article>
 
