@@ -5,124 +5,143 @@ import { javascriptMap } from "../data/maps/javaScriptMap.js";
 import { sqlMap } from "../data/maps/sqlMap.js";
 import { gameState } from "../state/gameState.js";
 
-function getCurrentMap() {
-    switch (gameState.currentTechnology) {
-        case "python":
-            return pythonMap;
-        case "html":
-            return htmlMap;
-        case "css":
-            return cssMap;
-        case "javascript":
-            return javascriptMap;
-        case "sql":
-            return sqlMap;
-        default:
-            return [];
-    }
+const MAPS = {
+  python: pythonMap,
+  html: htmlMap,
+  css: cssMap,
+  javascript: javascriptMap,
+  sql: sqlMap,
+};
+
+export function getCurrentMap() {
+  return MAPS[gameState.currentTechnology] || [];
 }
 
 export function renderRoadmap() {
+  const layer = document.querySelector(".nodes-layer");
+  const svg = document.querySelector(".connections");
+  const world = document.querySelector(".roadmap-world");
 
-    const layer = document.querySelector(".nodes-layer");
-    const svg = document.querySelector(".connections");
+  if (!layer || !svg || !world) return;
 
-    layer.innerHTML = "";
-    svg.innerHTML = "";
+  layer.innerHTML = "";
+  svg.innerHTML = "";
 
-    const currentMap = getCurrentMap();
-    console.log("Mapa Actual:", gameState.currentTechnology);
+  const currentMap = getCurrentMap();
+  if (!currentMap.length) return;
 
-    if (!currentMap.length) return;
+  const minY = Math.min(...currentMap.map((n) => n.y));
+  const maxX = Math.max(...currentMap.map((n) => n.x)) + 280;
+  const rawMaxY = Math.max(...currentMap.map((n) => n.y));
+  const nodeSize = 104;
+  const mapHeight = rawMaxY - minY + nodeSize;
+  const viewportHeight =
+    document.querySelector(".roadmap-container")?.clientHeight || 760;
+  const centeredTop = Math.max((viewportHeight - mapHeight) / 2, 80);
+  const yOffset = centeredTop - minY;
+  const maxY = rawMaxY + yOffset + 220;
 
-    const maxX = Math.max(...currentMap.map(n => n.x)) + 200;
-    const maxY = Math.max(...currentMap.map(n => n.y)) + 200;
+  layer.style.width = `${maxX}px`;
+  layer.style.height = `${maxY}px`;
+  world.style.width = `${Math.max(maxX, 2200)}px`;
+  world.style.height = `${Math.max(maxY, 760)}px`;
 
-    layer.style.width = maxX + "px";
-    layer.style.height = maxY + "px";
+  svg.setAttribute("width", String(maxX));
+  svg.setAttribute("height", String(maxY));
 
-    svg.setAttribute("width", maxX);
-    svg.setAttribute("height", maxY);
+  const techProgress = gameState.progress[gameState.currentTechnology] || [];
 
-    currentMap.forEach(nodeData => {
+  currentMap.forEach((nodeData, index) => {
+    const status = getNodeStatus(nodeData, techProgress);
 
-        const node = document.createElement("div");
-        node.classList.add("node");
+    const node = document.createElement("button");
+    node.type = "button";
+    node.className = `node ${status}`;
+    node.style.left = `${nodeData.x}px`;
+    node.style.top = `${nodeData.y + yOffset}px`;
+    node.dataset.nodeId = String(nodeData.id);
+    node.style.setProperty("--delay", `${index * 24}ms`);
 
-        node.style.left = nodeData.x + "px";
-        node.style.top = nodeData.y + "px";
-        node.textContent = nodeData.title;
+    node.innerHTML = `
+      <span class="node-title">${nodeData.title}</span>
+      <span class="node-difficulty ${nodeData.difficulty}">${nodeData.difficulty}</span>
+    `;
 
-        node.style.borderColor = getNodeColor(nodeData.difficulty);
+    node.addEventListener("click", () => {
+      if (status === "locked") return;
 
-        const techProgress =
-          gameState.progress[gameState.currentTechnology];
-
-        const completed = techProgress.includes(nodeData.id);
-
-        if (!nodeData.requires) {
-            node.classList.add("available");
-        } 
-        else if (techProgress.includes(nodeData.requires)) {
-            node.classList.add("available");
-        } 
-        else {
-            node.classList.add("locked");
-        }
-
-        if (completed) {
-            node.classList.remove("available");
-            node.classList.add("completed");
-        }
-
-        node.addEventListener("click", () => {
-            if (node.classList.contains("locked")) return;
-            console.log("Nodo seleccionado:", nodeData.id);
-        });
-
-        layer.appendChild(node);
-
-        drawConnection(svg, nodeData, currentMap, techProgress);
-
+      centerNodeInViewport(node);
+      document.dispatchEvent(
+        new CustomEvent("roadmap:nodeSelected", {
+          detail: {
+            node: nodeData,
+            status,
+            technology: gameState.currentTechnology,
+            map: currentMap,
+            progress: techProgress,
+          },
+        }),
+      );
     });
+
+    layer.appendChild(node);
+    drawConnection(svg, nodeData, currentMap, techProgress, yOffset);
+  });
 }
 
-function drawConnection(svg, nodeData, currentMap, techProgress) {
+function centerNodeInViewport(nodeElement) {
+  const container = document.querySelector(".roadmap-container");
+  const detailPanel = document.querySelector(".detail-panel");
+  if (!container || !nodeElement) return;
 
-    if (!nodeData.requires) return;
+  const nodeCenterX = nodeElement.offsetLeft + nodeElement.offsetWidth / 2;
+  const nodeCenterY = nodeElement.offsetTop + nodeElement.offsetHeight / 2;
 
-    const prev = currentMap.find(n => n.id === nodeData.requires);
-    if (!prev) return;
+  const panelOpen = detailPanel?.classList.contains("active");
+  const panelWidth = panelOpen ? detailPanel.offsetWidth || 0 : 0;
+  const safeViewportWidth = Math.max(container.clientWidth - panelWidth, 1);
 
-    const offset = 45;
+  const targetLeft = Math.max(nodeCenterX - safeViewportWidth / 2, 0);
+  const targetTop = Math.max(nodeCenterY - container.clientHeight / 2, 0);
 
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-
-    line.setAttribute("x1", prev.x + offset);
-    line.setAttribute("y1", prev.y + offset);
-    line.setAttribute("x2", nodeData.x + offset);
-    line.setAttribute("y2", nodeData.y + offset);
-
-    line.setAttribute("stroke-width", "3");
-
-    if (techProgress.includes(prev.id)) {
-        line.setAttribute("stroke", "#2ecc71");
-    } else {
-        line.setAttribute("stroke", "#444");
-    }
-
-    svg.appendChild(line);
+  container.scrollTo({
+    left: targetLeft,
+    top: targetTop,
+    behavior: "smooth",
+  });
 }
 
-function getNodeColor(difficulty) {
-  switch (difficulty) {
-    case "basic":
-      return "#4CAF50";
-    case "intermediate":
-      return "#FFC107";
-    case "advanced":
-      return "#F44336";
-    default:
-      return "#999";
-  }
+function getNodeStatus(nodeData, techProgress) {
+  const completed = techProgress.includes(nodeData.id);
+  const unlocked = !nodeData.requires || techProgress.includes(nodeData.requires);
+
+  if (completed) return "completed";
+  if (unlocked) return "available";
+  return "locked";
+}
+
+function drawConnection(svg, nodeData, currentMap, techProgress, yOffset) {
+  if (!nodeData.requires) return;
+
+  const prev = currentMap.find((n) => n.id === nodeData.requires);
+  if (!prev) return;
+
+  const offset = 52;
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+
+  line.setAttribute("x1", String(prev.x + offset));
+  line.setAttribute("y1", String(prev.y + yOffset + offset));
+  line.setAttribute("x2", String(nodeData.x + offset));
+  line.setAttribute("y2", String(nodeData.y + yOffset + offset));
+  line.setAttribute("stroke-width", "3");
+  line.setAttribute(
+    "stroke",
+    techProgress.includes(prev.id)
+      ? "var(--accent-primary)"
+      : "rgba(255,255,255,0.22)",
+  );
+  line.setAttribute("stroke-linecap", "round");
+  line.setAttribute("opacity", "0.9");
+
+  svg.appendChild(line);
 }

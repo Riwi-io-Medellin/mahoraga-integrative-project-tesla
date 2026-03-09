@@ -16,7 +16,7 @@
 
 .user-section:hover {
     background: #2a2a2a;
-     transform: translateX(6px) scale(1.02);
+     transform: translateY(-2px) scale(1.02);
 }
 
 /* IMAGEN */
@@ -31,10 +31,44 @@
     align-items: center;
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.262);
+    background: linear-gradient(145deg, #1f1f1f, #2f2f2f);
+    background-size: cover;
+    background-position: center;
+    position: relative;
 }
 
 .user-avatar:hover{
     background-color: rgb(65, 65, 65);
+}
+
+.user-avatar::before {
+    content: "\f4da";
+    font-family: "bootstrap-icons";
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 16px;
+}
+
+.user-avatar.has-image::before {
+    content: "";
+}
+
+.user-avatar.is-updated {
+    animation: avatarRefresh 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes avatarRefresh {
+    0% {
+        transform: scale(0.9);
+        filter: brightness(0.8);
+    }
+    70% {
+        transform: scale(1.05);
+        filter: brightness(1.15);
+    }
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
 }
 
 .user-avatar i {
@@ -67,4 +101,3 @@
 .logo-sql {
     width: 50px;
 }
-

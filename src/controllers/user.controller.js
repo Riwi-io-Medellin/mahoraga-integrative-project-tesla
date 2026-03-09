@@ -70,6 +70,7 @@ function toPublicUser(row) {
     user_status: row.user_status,
     id_level: row.id_level,
     id_language: row.id_language,
+    created_at: row.created_at,
   };
 }
 
@@ -77,7 +78,7 @@ function toPublicUser(row) {
 async function getUsers(_req, res) {
   try {
     const query = `
-      SELECT id_user, user_name, email, password, user_status, id_level, id_language
+      SELECT id_user, user_name, email, password, user_status, id_level, id_language, created_at
       FROM "user"
       ORDER BY created_at DESC
     `;
@@ -116,7 +117,7 @@ async function createUser(req, res) {
     const query = `
       INSERT INTO "user" (user_name, email, password, user_status, id_language, id_level)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id_user, user_name, email, user_status, id_level, id_language
+      RETURNING id_user, user_name, email, user_status, id_level, id_language, created_at
     `;
     const values = [
       userDTO.user_name,
