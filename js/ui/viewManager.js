@@ -16,12 +16,17 @@ export function initDashboardViewManager() {
   interviewButton?.addEventListener("click", () => {
     const topic = interviewButton.dataset.topic;
     const nodeId = interviewButton.dataset.nodeId;
+    const loggedInUser = getLoggedInUser();
 
-    if (!topic || !nodeId) {
+    if (!loggedInUser) {
+      window.location.href = "../index.html";
       return;
     }
 
-    const loggedInUser = getLoggedInUser();
+    if (!topic || !nodeId || !gameState.currentTechnology) {
+      return;
+    }
+
     const context = {
       technology: gameState.currentTechnology,
       topic,

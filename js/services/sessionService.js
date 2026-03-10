@@ -4,7 +4,35 @@ const INTERVIEW_LANGUAGE_KEY = "interviewLanguageId";
 
 export function getLoggedInUser() {
   const value = sessionStorage.getItem(LOGGED_IN_USER_KEY);
-  return value ? JSON.parse(value) : null;
+
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const user = JSON.parse(value);
+
+    if (!user || typeof user !== "object") {
+      clearLoggedInUser();
+      return null;
+    }
+
+    return normalizeLoggedInUser(user);
+  } catch {
+    clearLoggedInUser();
+    return null;
+  }
+}
+
+export function setLoggedInUser(user) {
+  const normalizedUser = normalizeLoggedInUser(user);
+  sessionStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(normalizedUser));
+  return normalizedUser;
+}
+
+export function clearLoggedInUser() {
+  sessionStorage.removeItem(LOGGED_IN_USER_KEY);
+  sessionStorage.removeItem(INTERVIEW_LANGUAGE_KEY);
 }
 
 export function requireLoggedInUser(redirectPath = "../index.html") {
@@ -20,6 +48,17 @@ export function requireLoggedInUser(redirectPath = "../index.html") {
 
 export function getStoredProfilePhoto() {
   return localStorage.getItem(PROFILE_PHOTO_KEY) || "";
+}
+
+export function redirectLoggedInUser(targetPath = "./pages/dashboard.html") {
+  const user = getLoggedInUser();
+
+  if (!user) {
+    return null;
+  }
+
+  window.location.href = targetPath;
+  return user;
 }
 
 // Guarda el idioma elegido para la entrevista sin tocar el perfil base del usuario.
@@ -86,4 +125,13 @@ export function getLanguageName(idLanguage) {
 // Reutiliza el mismo mapeo para el idioma elegido solo dentro del interview.
 export function getInterviewLanguageName(idLanguage) {
   return getLanguageName(idLanguage);
+}
+
+function normalizeLoggedInUser(user) {
+  return {
+    ...user,
+    id_user: Number(user?.id_user || 0) || null,
+    id_level: Number(user?.id_level || 1),
+    id_language: Number(user?.id_language || 1),
+  };
 }

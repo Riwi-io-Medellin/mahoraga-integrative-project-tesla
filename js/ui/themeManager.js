@@ -1,4 +1,5 @@
 import { clearInterviewSession } from "../services/interviewService.js";
+import { clearLoggedInUser } from "../services/sessionService.js";
 
 const THEME_STORAGE_KEY = "dashboardTheme";
 
@@ -63,6 +64,6 @@ function closeSettings(overlay) {
 
 function handleLogout() {
   clearInterviewSession();
-  sessionStorage.removeItem("loggedInUser");
+  clearLoggedInUser();
   window.location.href = "../index.html";
 }

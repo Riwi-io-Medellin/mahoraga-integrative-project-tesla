@@ -1,5 +1,6 @@
 import { createUser, UserCreateDTO, loginUser } from './authApi.js'
 import { validateUsername, validatePassword, validateLoginIdentifier, showAlert } from './validation.js';
+import { clearLoggedInUser, setLoggedInUser } from '../js/services/sessionService.js';
 
 export function initAuthModal() {
     const authModal = document.getElementById('authModal');
@@ -212,7 +213,8 @@ export function initAuthModal() {
             showAlert(loginForm, `Welcome, ${user.user_name}!`, 'success');
 
             // Este sessionStorage guarda lo que retorno backend para mantener sesion.
-            sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+            clearLoggedInUser();
+            setLoggedInUser(user);
 
             // redirect to dashboard
             setTimeout(() => {
