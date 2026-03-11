@@ -5,6 +5,7 @@ import cors from 'cors'
 import routerQuestion from './modules/questions/question.route.js'
 import routerUser from './modules/users/user.route.js'
 import profileRouter from './modules/profiles/profile.route.js'
+import interviewRouter from './modules/interview/interview.route.js'
 
 const app = express()
 const __filename = fileURLToPath(import.meta.url)
@@ -15,9 +16,8 @@ app.use(cors())
 app.use(express.static(path.join(__dirname, '..')))
 app.use('/questions', routerQuestion)
 app.use('/users', routerUser)
-app.use('/api/questions', routerQuestion)
-app.use('/api/users', routerUser)
 app.use('/profile', profileRouter)
+app.use('/interview', interviewRouter)
 
 app.get('/', (_req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'))

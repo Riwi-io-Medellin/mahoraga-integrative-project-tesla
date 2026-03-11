@@ -1,8 +1,9 @@
 import {
-  consultationQuestion,
-  createQuestion,
-  getInterviewQuestions as getInterviewQuestionsService,
-  getQuestionByLevel as getQuestionByLevelService
+    consultationQuestion,
+    createQuestion,
+    getInterviewQuestions as getInterviewQuestionsService,
+    getQuestionByLevel as getQuestionByLevelService,
+    updateQuestion as updateQuestionService
 } from './question.service.js'
 
 export const getQuestions = async (req, res) => {
@@ -46,6 +47,46 @@ export const createQuestionRequest = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const updateQuestionRequest = async (req, res) => {
+    const { id_question } = req.params
+    const { id_topic, id_level, translations } = req.body
+
+    if (!id_question) {
+        return res.status(400).json({ error: 'Debes indicar id_question en la ruta.' })
+    }
+
+    if (!id_topic || !id_level || !Array.isArray(translations) || translations.length === 0) {
+        return res.status(400).json({
+            error: 'Debes enviar id_topic, id_level y translations (array no vacio).'
+        })
+    }
+
+    const hasInvalidTranslation = translations.some(
+        (item) => !item.id_language || !item.question_text
+    )
+    if (hasInvalidTranslation) {
+        return res.status(400).json({
+            error: 'Cada traduccion debe incluir id_language y question_text.'
+        })
+    }
+
+    try {
+        const updatedQuestion = await updateQuestionService(
+            id_question,
+            id_topic,
+            id_level,
+            translations
+        )
+        res.status(200).json({
+            message: 'The question was updated correctly.',
+            ...updatedQuestion
+        })
+    } catch (error) {
+        console.error('Error al actualizar la pregunta:', error)
+        res.status(500).json({ error: error.message })
+    }
+}
 
 export const getQuestionByLevel = async (req, res) => {
     const { id_level } = req.params
