@@ -1,78 +1,130 @@
+/* CONTENEDOR */
+
 .technologies {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
 }
+
+
+/* BOTÓN BASE */
 
 .tech-btn {
-  width: 100%;
-  padding: 16px 18px;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
-}
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
 
-.tech-btn:hover {
-  transform: translateY(-4px) translateX(4px);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
-}
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
 
-.tech-btn.active {
-  outline: 2px solid rgba(255, 255, 255, 0.2);
-}
+    color: #fff;
 
-.python {
-  background: linear-gradient(135deg, rgba(55, 119, 171, 0.3), rgba(44, 90, 160, 0.2));
-  border-color: rgba(55, 119, 171, 0.3);
-}
+    font-size: 13px;
+    font-weight: 600;
 
-.html {
-  background: linear-gradient(135deg, rgba(227, 79, 38, 0.3), rgba(212, 58, 26, 0.2));
-  border-color: rgba(227, 79, 38, 0.3);
-}
-
-.css {
-  background: linear-gradient(135deg, rgba(41, 101, 241, 0.3), rgba(30, 78, 203, 0.2));
-  border-color: rgba(41, 101, 241, 0.3);
-}
-
-.javascript {
-  background: linear-gradient(135deg, rgba(247, 222, 30, 0.3), rgba(172, 152, 0, 0.25));
-  border-color: rgba(247, 222, 30, 0.3);
-}
-
-.sql {
-  background: linear-gradient(135deg, rgba(41, 60, 146, 0.3), rgba(30, 42, 107, 0.2));
-  border-color: rgba(41, 60, 146, 0.3);
-}
-
-.tech-btn span:first-of-type {
-  margin-left: 12px;
-  margin-right: auto;
+    cursor: pointer;
+    transition: transform 0.22s ease, filter 0.22s ease, box-shadow 0.22s ease,
+      border-color 0.22s ease, background 0.3s ease, color 0.3s ease;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+    text-align: left;
 }
 
 .tech-btn img {
-  object-fit: contain;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.tech-btn .logo-sql {
+    width: 34px;
+}
+
+/* ESTADOS */
+/* HOVER */
+
+.tech-btn:hover {
+    transform: scale(1.018);
+    filter: brightness(1.1);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.34);
+}
+
+.python:hover {
+    background: linear-gradient(135deg, #1f4f73, #2e6f9f);
+}
+
+.css:hover {
+    background: linear-gradient(135deg, #1843a4, #2f6fff);
+}
+
+.html:hover {
+    background: linear-gradient(135deg, #a9391a, #e35a2d);
+}
+
+.javascript:hover {
+    background: linear-gradient(135deg, #9c8d1f, #d6c12f);
+}
+
+.sql:hover {
+    background: linear-gradient(135deg, #1d2c70, #3348a8);
+}
+
+/* BACKGROUND BOTONES */
+
+.python {
+    background: linear-gradient(135deg, #2b58767d, #3777ab8d);
+}
+
+.html {
+    background: linear-gradient(135deg, #7e2e1778, #e34f2682);
+}
+
+.css {
+    background: linear-gradient(135deg, #173e9c7d, #2965f187);
+}
+
+.javascript {
+    background: linear-gradient(135deg, #857a1a7e, #c6b32685);
+}
+
+.sql {
+    background: linear-gradient(135deg, #1c2a6b70, #293d927f);
+}
+
+.tech-btn.python.active {
+    background: linear-gradient(135deg, #1f4f73, #2e6f9f);
+}
+
+.tech-btn.css.active {
+    background: linear-gradient(135deg, #1843a4, #2f6fff);
+}
+
+.tech-btn.html.active {
+    background: linear-gradient(135deg, #a9391a, #e35a2d);
+}
+
+.tech-btn.javascript.active {
+    background: linear-gradient(135deg, #9c8d1f, #d6c12f);
+}
+
+.tech-btn.sql.active {
+    background: linear-gradient(135deg, #1d2c70, #3348a8);
+}
+
+/* TEXTO */
+
+.tech-name {
+    font-weight: 600;
 }
 
 .percent {
-  font-size: 13px;
-  opacity: 0.85;
-  font-weight: 700;
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
+    margin-left: auto;
+    font-size: 12px;
+    opacity: 0.78;
 }

@@ -1,18 +1,14 @@
-import { activateTechnology } from "./ui/dashboardRenderer.js";
-import { requireLoggedInUser } from "./services/sessionService.js";
-import { initThemeManager } from "./ui/themeManager.js";
-import { renderRoadmap } from "./ui/roadmapRenderer.js";
-import { initDashboardViewManager, resetDetailPanel } from "./ui/viewManager.js";
-import { gameState } from "./state/gameState.js";
+import { initDashboardRenderer, setActiveTechnology } from "./ui/dashboardRenderer.js";
 import { initPhotoProfile } from "./data/profile/modalProfile.js";
+import { initDetailPanel } from "./ui/viewManager.js";
+import { renderRoadmap } from "./ui/roadmapRenderer.js";
+import { applyTranslations, t } from "./services/i18n.js";
+import { requireLoggedInUser } from "./services/sessionService.js";
 import { initDashboardIdentity } from "./ui/userIdentity.js";
 
 function initRoadmapDrag() {
   const container = document.querySelector(".roadmap-container");
-
-  if (!container) {
-    return;
-  }
+  if (!container) return;
 
   let isDragging = false;
   let startX = 0;
@@ -20,79 +16,102 @@ function initRoadmapDrag() {
   let scrollLeft = 0;
   let scrollTop = 0;
 
-  container.addEventListener("mousedown", (event) => {
+  container.addEventListener("mousedown", (e) => {
+    const target = e.target;
+    if (
+      target.closest("button") ||
+      target.closest("input") ||
+      target.closest("textarea") ||
+      target.closest(".detail-panel")
+    ) {
+      return;
+    }
+
     isDragging = true;
     container.classList.add("active");
-    startX = event.pageX - container.offsetLeft;
-    startY = event.pageY - container.offsetTop;
+
+    startX = e.pageX - container.offsetLeft;
+    startY = e.pageY - container.offsetTop;
     scrollLeft = container.scrollLeft;
     scrollTop = container.scrollTop;
   });
 
-  ["mouseleave", "mouseup"].forEach((eventName) => {
-    container.addEventListener(eventName, () => {
-      isDragging = false;
-      container.classList.remove("active");
-    });
+  container.addEventListener("mouseleave", () => {
+    isDragging = false;
+    container.classList.remove("active");
   });
 
-  container.addEventListener("mousemove", (event) => {
-    if (!isDragging) {
-      return;
-    }
+  container.addEventListener("mouseup", () => {
+    isDragging = false;
+    container.classList.remove("active");
+  });
 
-    event.preventDefault();
+  container.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
 
-    const currentX = event.pageX - container.offsetLeft;
-    const currentY = event.pageY - container.offsetTop;
-    const walkX = currentX - startX;
-    const walkY = currentY - startY;
+    e.preventDefault();
+
+    const x = e.pageX - container.offsetLeft;
+    const y = e.pageY - container.offsetTop;
+
+    const walkX = x - startX;
+    const walkY = y - startY;
 
     container.scrollLeft = scrollLeft - walkX;
     container.scrollTop = scrollTop - walkY;
   });
 }
 
-function initTechnologySelector() {
-  const technologyButtons = document.querySelectorAll(".tech-btn");
+function initSidebarToggle() {
+  const toggleBtn = document.querySelector(".hamburger-toggle");
+  const sidebar = document.querySelector(".sidebar");
+  const roadmapContainer = document.querySelector(".roadmap-container");
+  const toggleIcon = toggleBtn?.querySelector(".toggle-lordicon");
 
-  technologyButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const technology = button.dataset.tech;
+  if (!toggleBtn || !sidebar || !roadmapContainer) return;
 
-      if (!technology) {
-        return;
-      }
+  const syncToggleState = () => {
+    const collapsed = sidebar.classList.contains("collapsed");
+    toggleBtn.classList.toggle("is-collapsed", collapsed);
 
-      activateTechnology(technology);
-      resetDetailPanel();
-      renderRoadmap();
+    if (toggleIcon) {
+      toggleIcon.setAttribute("trigger", collapsed ? "hover" : "morph");
+    }
 
-      console.log("Tecnologia actual:", gameState.currentTechnology);
-    });
+    toggleBtn.setAttribute("aria-label", t("sidebar.toggle"));
+    toggleBtn.title = t("sidebar.toggle");
+  };
+
+  toggleBtn.addEventListener("click", () => {
+    sidebar.classList.toggle("collapsed");
+    roadmapContainer.classList.toggle("sidebar-collapsed");
+    syncToggleState();
   });
 
-  const initialTechnology =
-    document.querySelector(".tech-btn.python")?.dataset.tech ||
-    technologyButtons[0]?.dataset.tech;
-
-  if (initialTechnology) {
-    activateTechnology(initialTechnology);
-    renderRoadmap();
-  }
+  syncToggleState();
+  document.addEventListener("i18n:change", syncToggleState);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   const user = requireLoggedInUser("../index.html");
+  if (!user) return;
 
-  if (!user) {
-    return;
-  }
-
+  applyTranslations(document);
   initRoadmapDrag();
-  initDashboardIdentity();
+  initSidebarToggle();
+  initDashboardRenderer();
   initPhotoProfile();
-  initDashboardViewManager();
-  initThemeManager();
-  initTechnologySelector();
+  initDetailPanel();
+  initDashboardIdentity();
+
+  setActiveTechnology("python");
+  renderRoadmap();
+
+  let resizeRaf = null;
+  window.addEventListener("resize", () => {
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      renderRoadmap();
+    });
+  });
 });

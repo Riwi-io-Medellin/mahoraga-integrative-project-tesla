@@ -5,7 +5,7 @@ export function initPhotoProfile() {
   const openButton = document.querySelector(".user-section");
   const closeButton = document.querySelector(".exitLogo");
   const photoContainer = document.getElementById("photoContainer");
-  const sidebarAvatar = document.getElementById("sidebarAvatar");
+  const sidebarAvatar = document.getElementById("sidebarAvatar") || document.querySelector(".user-avatar");
   const photoInput = document.getElementById("photoInput");
   const deleteButton = document.querySelector(".delete");
   const cameraIcon = document.querySelector(".camera-icon");

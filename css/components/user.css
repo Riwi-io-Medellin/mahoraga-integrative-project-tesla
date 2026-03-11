@@ -1,157 +1,103 @@
 .user-section {
-  display: flex;
-  background-color: var(--bg-secondary);
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-  color: var(--text-primary);
-  box-shadow: 0 4px 12px var(--shadow-color);
+    display: flex;
+    background-color: #1e1e1e;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.186);
+
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .user-section:hover {
-  background: var(--bg-tertiary);
-  transform: translateX(6px) scale(1.02);
+    background: #2a2a2a;
+     transform: translateY(-2px) scale(1.02);
 }
+
+/* IMAGEN */
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: background-color 0.2s ease, filter 0.2s ease;
-  border: 1px solid var(--border-color);
-  background-size: cover;
-  background-position: center;
-  background-color: var(--bg-primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.262);
+    background: linear-gradient(145deg, #1f1f1f, #2f2f2f);
+    background-size: cover;
+    background-position: center;
+    position: relative;
 }
 
-.user-avatar:hover {
-  background-color: var(--bg-secondary);
+.user-avatar:hover{
+    background-color: rgb(65, 65, 65);
 }
 
-.user-avatar.has-image:hover {
-  filter: brightness(0.86);
+.user-avatar::before {
+    content: "\f4da";
+    font-family: "bootstrap-icons";
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 16px;
+}
+
+.user-avatar.has-image::before {
+    content: "";
+}
+
+.user-avatar.is-updated {
+    animation: avatarRefresh 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes avatarRefresh {
+    0% {
+        transform: scale(0.9);
+        filter: brightness(0.8);
+    }
+    70% {
+        transform: scale(1.05);
+        filter: brightness(1.15);
+    }
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
 }
 
 .user-avatar i {
-  font-size: 1.2rem;
+    font-size: 1.2rem;
 }
 
-.user-avatar[data-initials]::after {
-  content: attr(data-initials);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.username {
-  margin: 0;
-  font-weight: 700;
-}
-
-.levels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.user-badge {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(46, 204, 113, 0.14);
-  color: var(--accent-primary);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.user-badge.muted {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary);
-}
-
-.identity-banner {
-  margin-top: 18px;
-  padding: 18px;
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at top right, rgba(46, 204, 113, 0.18), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
-}
-
-.identity-kicker,
-.identity-copy,
-.identity-name {
-  margin: 0;
-}
-
-.identity-kicker {
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-}
-
-.identity-name {
-  margin-top: 8px;
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.identity-copy {
-  margin-top: 10px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  font-size: 0.9rem;
-}
-
-.identity-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.identity-tag {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
+/* LOGOS */
 
 .logo {
-  width: 65px;
+    width: 65px;
 }
 
-.logo-python,
-.logo-html,
+.logo-python {
+    width: 40px;
+}
+
+.logo-html {
+    width: 40px;
+}
+
 .logo-css {
-  width: 40px;
+    width: 40px;
 }
 
 .logo-javascript {
-  width: 40px;
-  border-radius: 8px;
+    width: 40px;
+    border-radius: 8px;
 }
 
 .logo-sql {
-  width: 50px;
+    width: 50px;
 }

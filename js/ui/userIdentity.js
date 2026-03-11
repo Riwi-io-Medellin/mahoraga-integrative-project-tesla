@@ -12,15 +12,33 @@ export function initDashboardIdentity() {
   }
 
   const presentation = getUserPresentation(user);
-  const badges = document.getElementById("dashboardBadges");
+  const badges =
+    document.getElementById("dashboardBadges") ||
+    document.querySelector(".sidebar .levels");
 
   setText("dashboardUsername", presentation.name);
   setText("identityName", presentation.name);
-  setText("identityCopy", `${presentation.levelName} path active. ${presentation.languageName} profile connected for interviews and roadmap progress.`);
+  setText(
+    "identityCopy",
+    `${presentation.levelName} path active. ${presentation.languageName} profile connected for interviews and roadmap progress.`,
+  );
   setText("identityLevel", presentation.levelName);
   setText("identityLanguage", presentation.languageName);
   setText("profileUsername", presentation.name);
   setText("profileLevel", presentation.levelName);
+  const nameTargets = [
+    document.getElementById("dashboardUsername"),
+    document.querySelector(".sidebar .username"),
+    document.getElementById("profileUsername"),
+    document.querySelector(".profile-view h2"),
+  ];
+
+  nameTargets.forEach((element) => {
+    if (!element) return;
+    element.textContent = presentation.name;
+    element.removeAttribute("data-i18n");
+    element.removeAttribute("data-i18n-html");
+  });
   const progress = getProfileProgress(user.id_level);
   setText("profileProgressLabel", `${progress}%`);
   setProgress("profileProgressFill", progress);
@@ -55,7 +73,7 @@ export function initInterviewIdentity() {
 }
 
 function applyPhotoToIdentity(photo, initials) {
-  const avatar = document.getElementById("sidebarAvatar");
+  const avatar = document.getElementById("sidebarAvatar") || document.querySelector(".user-avatar");
   const profilePhoto = document.getElementById("photoContainer");
 
   [avatar, profilePhoto].forEach((element) => {

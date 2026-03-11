@@ -44,6 +44,17 @@ export function validatePassword(password) {
     return null;
 }
 
+export function validateEmail(email) {
+    if (!email) {
+        return 'Email es requerido';
+    }
+    const normalized = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+        return 'Email invalido';
+    }
+    return null;
+}
+
 export function showAlert(form, message, type) {
     const existingAlert = form.querySelector('.alert');
     if (existingAlert) {

@@ -1,148 +1,99 @@
-import { gameState } from "../state/gameState.js";
-import { clearInterviewSession, saveInterviewContext } from "../services/interviewService.js";
-import { getInterviewLanguagePreference, getLoggedInUser } from "../services/sessionService.js";
+import { t } from "../services/i18n.js";
 
-const DEFAULT_DETAIL_MESSAGE = "Choose an available node to inspect its content.";
+const TECH_LABELS = {
+  python: "Python",
+  html: "HTML",
+  css: "CSS",
+  javascript: "JavaScript",
+  sql: "SQL",
+};
 
-export function initDashboardViewManager() {
-  const detailPanel = document.querySelector(".detail-panel");
-  const closeButton = document.querySelector(".close-panel");
-  const interviewButton = document.querySelector(".interview-btn");
+let selectedNode = null;
 
-  closeButton?.addEventListener("click", () => {
-    detailPanel?.classList.remove("active");
+export function initDetailPanel() {
+  const panel = document.querySelector(".detail-panel");
+  const closeBtn = document.querySelector(".close-panel");
+  const interviewBtn = document.querySelector(".interview-btn");
+
+  if (!panel) return;
+
+  closeBtn?.addEventListener("click", () => {
+    panel.classList.remove("active");
   });
 
-  interviewButton?.addEventListener("click", () => {
-    const topic = interviewButton.dataset.topic;
-    const nodeId = interviewButton.dataset.nodeId;
-    const loggedInUser = getLoggedInUser();
+  interviewBtn?.addEventListener("click", () => {
+    if (!selectedNode) return;
 
-    if (!loggedInUser) {
-      window.location.href = "../index.html";
-      return;
-    }
-
-    if (!topic || !nodeId || !gameState.currentTechnology) {
-      return;
-    }
-
-    const context = {
-      technology: gameState.currentTechnology,
-      topic,
-      difficulty: interviewButton.dataset.difficulty || "basic",
-      nodeId: Number(nodeId),
-      // El nivel de la entrevista debe salir del perfil real del usuario, no del nodo visual.
-      levelId: Number(loggedInUser?.id_level || 1),
-      // Usa el idioma seleccionado para la entrevista si el usuario ya cambio esa preferencia.
-      languageId: getInterviewLanguagePreference(loggedInUser),
-      totalQuestions: 5,
-    };
-
-    clearInterviewSession();
-    saveInterviewContext(context);
-    window.location.href = "../pages/interview.html";
+    panel.classList.remove("active");
+    document.dispatchEvent(
+      new CustomEvent("interview:start", {
+        detail: selectedNode,
+      }),
+    );
   });
 
-  resetDetailPanel();
+  document.addEventListener("roadmap:nodeSelected", (event) => {
+    const detail = event.detail;
+    if (!detail?.node) return;
+
+    selectedNode = detail;
+    renderDetail(detail);
+    panel.classList.add("active");
+  });
+
+  document.addEventListener("i18n:change", () => {
+    if (selectedNode) {
+      renderDetail(selectedNode);
+    }
+  });
 }
 
-export function openDetailPanel(nodeData, currentMap) {
-  const detailPanel = document.querySelector(".detail-panel");
-  const title = document.querySelector(".detail-title");
+function renderDetail({ node, status, technology, map, progress }) {
+  const titleEl = document.querySelector(".detail-title");
   const topicsList = document.querySelector(".topics-list");
-  const interviewButton = document.querySelector(".interview-btn");
+  const progressValue = document.querySelector(".technology-progress-percent");
+  const progressFill = document.querySelector(".technology-progress-fill");
+  const interviewBtn = document.querySelector(".interview-btn");
 
-  if (!detailPanel || !title || !topicsList || !interviewButton) {
-    return;
+  if (titleEl) {
+    titleEl.textContent = `${TECH_LABELS[technology] || technology} • ${node.title}`;
   }
 
-  title.textContent = nodeData.title;
-  topicsList.innerHTML = buildTopics(nodeData).map((topic) => `<li>${topic}</li>`).join("");
-  interviewButton.dataset.topic = nodeData.title;
-  interviewButton.dataset.difficulty = nodeData.difficulty;
-  interviewButton.dataset.nodeId = String(nodeData.id);
-  interviewButton.disabled = false;
-  detailPanel.classList.add("active");
+  const total = map?.length || 0;
+  const completed = progress?.length || 0;
+  const percent = total ? Math.round((completed / total) * 100) : 0;
 
-  const progress = getTechnologyProgress(currentMap);
-  syncTechnologyProgress(progress);
-}
+  if (progressValue) progressValue.textContent = `${percent}%`;
+  if (progressFill) progressFill.style.width = `${percent}%`;
 
-export function resetDetailPanel() {
-  const detailPanel = document.querySelector(".detail-panel");
-  const title = document.querySelector(".detail-title");
-  const topicsList = document.querySelector(".topics-list");
-  const interviewButton = document.querySelector(".interview-btn");
-
-  if (title) {
-    title.textContent = "Select a topic";
+  if (interviewBtn) {
+    const disabled = status === "locked";
+    interviewBtn.disabled = disabled;
+    interviewBtn.title = disabled
+      ? t("view.unlock")
+      : t("view.start");
   }
+
+  const topics = buildTopics(node, status, map, progress);
 
   if (topicsList) {
-    topicsList.innerHTML = `<li>${DEFAULT_DETAIL_MESSAGE}</li>`;
-  }
-
-  if (interviewButton) {
-    interviewButton.disabled = true;
-    interviewButton.dataset.topic = "";
-    interviewButton.dataset.difficulty = "";
-    interviewButton.dataset.nodeId = "";
-  }
-
-  detailPanel?.classList.remove("active");
-}
-
-export function syncTechnologyProgress(progress) {
-  const progressFill = document.querySelector(".technology-progress-fill");
-  const progressLabel = document.querySelector(".technology-progress-percent");
-
-  if (progressFill) {
-    progressFill.style.width = `${progress}%`;
-  }
-
-  if (progressLabel) {
-    progressLabel.textContent = `${progress}%`;
+    topicsList.innerHTML = topics.map((item) => `<li>${item}</li>`).join("");
   }
 }
 
-function getTechnologyProgress(currentMap) {
-  if (!currentMap.length || !gameState.currentTechnology) {
-    return 0;
-  }
+function buildTopics(node, status, map, progress) {
+  const prereq = map.find((item) => item.id === node.requires);
+  const following = map.find((item) => item.requires === node.id);
+  const completed = progress.includes(node.id);
+  const translatedStatus = t(`view.status_${status}`) || status.toUpperCase();
 
-  const completedNodes = gameState.progress[gameState.currentTechnology]?.length || 0;
-  return Math.round((completedNodes / currentMap.length) * 100);
-}
-
-function buildTopics(nodeData) {
-  const cleanTitle = nodeData.title.replace(/\((.*?)\)/g, "$1");
-  const chunks = cleanTitle
-    .split(/[:/&,-]/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean);
-
-  const topics = [
-    `Difficulty: ${capitalize(nodeData.difficulty)}`,
-    `Node ${nodeData.id} in the ${gameState.currentTechnology.toUpperCase()} roadmap`,
+  return [
+    `${t("view.status")}: ${translatedStatus}${completed ? ` (${t("view.completed")})` : ""}`,
+    `${t("view.difficulty")}: ${node.difficulty}`,
+    prereq ? `${t("view.prereq")}: ${prereq.title}` : `${t("view.prereq")}: ${t("view.none")}`,
+    following
+      ? `${t("view.next")}: ${following.title}`
+      : `${t("view.next")}: ${t("view.terminal")}`,
+    `${t("view.practice")}: ${t("view.practiceText", { title: node.title })}`,
   ];
-
-  if (chunks.length > 1) {
-    topics.push(...chunks.slice(0, 3).map((chunk) => `Review ${chunk}`));
-  } else {
-    topics.push(`Core concept: ${nodeData.title}`);
-    topics.push("Practice with examples and applied exercises");
-  }
-
-  if (nodeData.requires) {
-    topics.push(`Prerequisite node: ${nodeData.requires}`);
-  } else {
-    topics.push("This is an entry node for the selected technology");
-  }
-
-  return topics;
-}
-
-function capitalize(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }

@@ -1,5 +1,11 @@
 import { createUser, UserCreateDTO, loginUser } from './authApi.js'
-import { validateUsername, validatePassword, validateLoginIdentifier, showAlert } from './validation.js';
+import {
+    validateUsername,
+    validatePassword,
+    validateLoginIdentifier,
+    validateEmail,
+    showAlert,
+} from './validation.js';
 import { clearLoggedInUser, setLoggedInUser } from '../js/services/sessionService.js';
 
 export function initAuthModal() {
@@ -240,6 +246,12 @@ export function initAuthModal() {
         const usernameError = validateUsername(username);
         if (usernameError) {
             showAlert(registerForm, usernameError, 'error');
+            return;
+        }
+
+        const emailError = validateEmail(email);
+        if (emailError) {
+            showAlert(registerForm, emailError, 'error');
             return;
         }
 
