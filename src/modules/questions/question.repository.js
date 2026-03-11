@@ -67,7 +67,6 @@ export const updateQuestion = async (id_question, id_topic, id_level, translatio
             `,
             [id_question]
         )
-
         if (Array.isArray(translations) && translations.length > 0) {
             for (const translation of translations) {
                 await client.query(
