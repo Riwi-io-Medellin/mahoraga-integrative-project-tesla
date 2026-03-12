@@ -1,3 +1,4 @@
+import { error } from "console";
 import { pool } from "../../config/db.config.js";
 
 

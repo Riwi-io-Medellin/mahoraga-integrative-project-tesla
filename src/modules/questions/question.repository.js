@@ -125,46 +125,9 @@ export const getQuestionByLevel = async (id_level, id_topic, id_language) => {
     }
 }
 
-
-export const newInterviewQuestion = async (id_session, id_question) => {
-    const query = `
-    insert into question_instance (id_session, id_question) values ($1, $2) returning *;
-    `
-    const values = [id_session, id_question]
-
-    try {
-        const response = await pool.query(query, values);
-        return response.rows[0];
-    } catch (error) {
-        console.error(`error: interview not created: ${error}`);
-        throw error;
-    }
-}
-
-export const newQuestionAnswered = async (id_user, answer, score, feedback, answered_at) => {
-    const query = `
-    insert into question_answered (id_user, answer, score, feedback, answered_at) values ($1, $2, $3, $4, $5) returning *;
-    `
-    const values = [id_user, answer, score, feedback, answered_at]
-
-    try{
-        const res = await pool.query(query, values);
-        return res.rows[0];
-    }catch (error){
-        console.error(`Erro: question answered not created: ${error} `)
-        throw error;
-    }
-}
-
-
-
-
-
-
 export const getInterviewQuestions = async ({
     id_level = null,
     id_language = null,
-    id_user = null,
     technology = '',
     topic = '',
     limit = 5
@@ -181,12 +144,7 @@ export const getInterviewQuestions = async ({
         let response = { rows: [] }
 
         for (const [currentLevel, currentLanguage] of fallbackChain) {
-            response = await queryInterviewQuestions(
-                currentLevel,
-                currentLanguage,
-                topicIds,
-                id_user
-            )
+            response = await queryInterviewQuestions(currentLevel, currentLanguage, topicIds)
 
             if (response.rows.length) {
                 break
@@ -205,7 +163,7 @@ export const getInterviewQuestions = async ({
     }
 }
 
-async function queryInterviewQuestions(id_level, id_language, topicIds = [], id_user = null) {
+async function queryInterviewQuestions(id_level, id_language, topicIds = []) {
     return pool.query(
         `
         SELECT
@@ -217,21 +175,11 @@ async function queryInterviewQuestions(id_level, id_language, topicIds = [], id_
         FROM question q
         LEFT JOIN question_translation qt ON qt.id_question = q.id_question
         WHERE ($1::int IS NULL OR q.id_level = $1)
-            AND ($2::int IS NULL OR qt.id_language = $2)
-            AND (cardinality($3::int[]) = 0 OR q.id_topic = ANY($3::int[]))
-            AND (
-                $4::uuid IS NULL
-                OR NOT EXISTS (
-                    SELECT 1
-                    FROM question_instance qi
-                    JOIN interview_session s ON s.id_session = qi.id_session
-                    WHERE qi.id_question = q.id_question
-                        AND s.id_user = $4
-                )
-            )
-            AND qt.question_text IS NOT NULL
+          AND ($2::int IS NULL OR qt.id_language = $2)
+          AND (cardinality($3::int[]) = 0 OR q.id_topic = ANY($3::int[]))
+          AND qt.question_text IS NOT NULL
         `,
-        [id_level, id_language, topicIds, id_user]
+        [id_level, id_language, topicIds]
     )
 }
 

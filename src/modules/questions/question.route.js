@@ -4,9 +4,7 @@ import {
   getInterviewQuestions,
   getQuestions,
   getQuestionByLevel,
-  updateQuestionRequest,
-  newInterviewQuestionReq,
-  newQuestionAnsweredReq
+  updateQuestionRequest
 } from './question.controller.js'
 
 const routerQuestion = Router()

@@ -1,5 +1,5 @@
 // Este controlador autentica login usando datos enviados desde el formulario del frontend.
-const pool = require("../config/db");
+const pool = require("../config/db.config.js");
 
 // Este DTO toma el body JSON del frontend y lo normaliza para autenticar.
 function buildLoginDTO(payload = {}) {

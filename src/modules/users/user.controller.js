@@ -65,7 +65,8 @@ export const loginUserReq = async (req, res) => {
     }catch(error){
         console.error('Error validating login', error)
         res.status(500).json({
-            error: 'Error, data cannot be accessed'
+            error: 'Error, data cannot be accessed',
+            detail: error?.message || String(error)
         })
     }
 }

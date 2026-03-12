@@ -3,9 +3,7 @@ import {
     createQuestion,
     getInterviewQuestions as getInterviewQuestionsService,
     getQuestionByLevel as getQuestionByLevelService,
-    updateQuestion as updateQuestionService,
-    newInterviewQuestion,
-    newQuestionAnswered
+    updateQuestion as updateQuestionService
 } from './question.service.js'
 
 export const getQuestions = async (req, res) => {
@@ -113,7 +111,6 @@ export const getInterviewQuestions = async (req, res) => {
     const {
         level,
         language,
-        id_user,
         technology = '',
         topic = '',
         limit = '5'
@@ -123,7 +120,6 @@ export const getInterviewQuestions = async (req, res) => {
         const data = await getInterviewQuestionsService({
             id_level: level ? Number(level) : null,
             id_language: language ? Number(language) : null,
-            id_user: id_user ? String(id_user) : null,
             technology,
             topic,
             limit: Number(limit) || 5
