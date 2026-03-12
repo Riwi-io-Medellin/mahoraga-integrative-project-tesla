@@ -8,27 +8,9 @@ export function initPhotoProfile() {
   const sidebarAvatar = document.getElementById("sidebarAvatar") || document.querySelector(".user-avatar");
   const photoInput = document.getElementById("photoInput");
   const deleteButton = document.querySelector(".delete");
-  const editButton = document.querySelector(".edit");
   const cameraIcon = document.querySelector(".camera-icon");
-  const actionBackdrop = document.getElementById("photoActionBackdrop");
-  const actionModal = document.getElementById("photoActionModal");
-  const actionEdit = document.querySelector(".photo-action-edit");
-  const actionDelete = document.querySelector(".photo-action-delete");
-  const actionCancel = document.querySelector(".photo-action-cancel");
 
-  if (
-    !modal ||
-    !openButton ||
-    !photoContainer ||
-    !photoInput ||
-    !deleteButton ||
-    !cameraIcon ||
-    !actionBackdrop ||
-    !actionModal ||
-    !actionEdit ||
-    !actionDelete ||
-    !actionCancel
-  ) {
+  if (!modal || !openButton || !photoContainer || !photoInput || !deleteButton || !cameraIcon) {
     return;
   }
 
@@ -40,18 +22,9 @@ export function initPhotoProfile() {
   syncAvatar(savedPhoto, photoContainer, sidebarAvatar, cameraIcon);
 
   photoContainer.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openPhotoActionModal(actionBackdrop, actionModal);
-  });
-
-  deleteButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openPhotoActionModal(actionBackdrop, actionModal);
-  });
-
-  editButton?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openPhotoActionModal(actionBackdrop, actionModal);
+    if (!event.target.classList.contains("delete")) {
+      photoInput.click();
+    }
   });
 
   photoInput.addEventListener("change", (event) => {
@@ -78,20 +51,12 @@ export function initPhotoProfile() {
     reader.readAsDataURL(file);
   });
 
-  actionEdit.addEventListener("click", () => {
-    closePhotoActionModal(actionBackdrop, actionModal);
-    photoInput.click();
-  });
-
-  actionDelete.addEventListener("click", () => {
-    closePhotoActionModal(actionBackdrop, actionModal);
+  deleteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
     localStorage.removeItem(STORAGE_KEY);
     syncAvatar("", photoContainer, sidebarAvatar, cameraIcon);
     document.dispatchEvent(new CustomEvent("profile-photo-updated", { detail: { image: "" } }));
   });
-
-  actionCancel.addEventListener("click", () => closePhotoActionModal(actionBackdrop, actionModal));
-  actionBackdrop.addEventListener("click", () => closePhotoActionModal(actionBackdrop, actionModal));
 
   openButton.addEventListener("click", () => {
     modal.classList.remove("closing");
@@ -105,10 +70,6 @@ export function initPhotoProfile() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      if (actionModal.classList.contains("active")) {
-        closePhotoActionModal(actionBackdrop, actionModal);
-        return;
-      }
       closeModal(modal, backdrop);
     }
   });
@@ -147,14 +108,4 @@ function closeModal(modal, backdrop) {
   window.setTimeout(() => {
     modal.classList.remove("active", "closing");
   }, 250);
-}
-
-function openPhotoActionModal(backdrop, modal) {
-  backdrop.classList.add("active");
-  modal.classList.add("active");
-}
-
-function closePhotoActionModal(backdrop, modal) {
-  backdrop.classList.remove("active");
-  modal.classList.remove("active");
 }
