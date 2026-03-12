@@ -1,0 +1,87 @@
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--background-body);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    color: var(--text-color);
+    margin-top: 10rem;
+    position: relative;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    background:
+        radial-gradient(110px circle at var(--cursor-x, 50%) var(--cursor-y, 20%),
+            rgba(255, 255, 255, 0.26),
+            rgba(255, 255, 255, 0) 58%),
+        radial-gradient(200px circle at var(--trail-x, 50%) var(--trail-y, 20%),
+            rgba(255, 255, 255, 0.14),
+            rgba(255, 255, 255, 0) 65%);
+    mix-blend-mode: screen;
+}
+
+ul {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+    padding: 0;
+    list-style-type: none;
+}
+
+li {
+    position: relative;
+}
+
+a {
+    text-decoration: none;
+    color: var(--text-color);
+    padding: 10px;
+    position: relative;
+    font-size: 18px;
+}
+
+a::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--text-color);
+    transition: width 0.3s ease, left 0.3s ease;
+}
+
+a:hover::after,
+a:focus::after,
+a:active::after {
+    width: 100%;
+    left: 0;
+}
+
+button {
+    color: var(--text-color);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 0.8rem;
+}
+
+hr {
+    margin-top: 2rem;
+    border: none;
+    border-top: 2px solid rgb(83, 83, 83);
+}
