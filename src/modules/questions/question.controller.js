@@ -113,6 +113,7 @@ export const getInterviewQuestions = async (req, res) => {
     const {
         level,
         language,
+        id_user,
         technology = '',
         topic = '',
         limit = '5'
@@ -122,6 +123,7 @@ export const getInterviewQuestions = async (req, res) => {
         const data = await getInterviewQuestionsService({
             id_level: level ? Number(level) : null,
             id_language: language ? Number(language) : null,
+            id_user: id_user ? String(id_user) : null,
             technology,
             topic,
             limit: Number(limit) || 5
