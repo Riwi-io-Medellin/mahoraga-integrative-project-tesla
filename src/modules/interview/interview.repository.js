@@ -1,5 +1,5 @@
 import { error } from "console";
-import { pool } from "../../config/db.config";
+import { pool } from "../../config/db.config.js";
 
 
 export const createInterview = async (id_user, id_topic, id_level, session_status, date_ini) => {
