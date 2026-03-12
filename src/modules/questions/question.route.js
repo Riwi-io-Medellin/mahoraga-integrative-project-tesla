@@ -14,5 +14,7 @@ routerQuestion.get('/', getQuestions)
 routerQuestion.get('/interview', getInterviewQuestions)
 routerQuestion.get('/level/:id_level', getQuestionByLevel)
 routerQuestion.put('/:id_question', updateQuestionRequest)
+routerQuestion.post('/instance', newInterviewQuestionReq)
+routerQuestion.post('/answered', newQuestionAnsweredReq)
 
 export default routerQuestion
