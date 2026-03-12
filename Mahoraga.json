@@ -1,5 +1,5 @@
 {
-  "name": "Voice_Assistant",
+  "name": "Mahoraga",
   "nodes": [
     {
       "parameters": {
@@ -12,10 +12,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -640,
-        224
+        -1920,
+        672
       ],
-      "id": "86ab6cca-8ece-44cb-a99f-694cd0eab126",
+      "id": "2032766f-13f2-4885-b84a-211070b0a192",
       "name": "Webhook",
       "webhookId": "ab18e0c9-d9d0-43c9-a219-41031e0f0398",
       "credentials": {
@@ -78,10 +78,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -320,
-        224
+        -1664,
+        672
       ],
-      "id": "34662117-f17e-404b-baea-7bdc652ad03b",
+      "id": "95fe6a0a-2099-4924-a755-67e3adaa8823",
       "name": "Edit Fields"
     },
     {
@@ -93,11 +93,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        16,
-        -448
+        -1584,
+        -256
       ],
       "typeVersion": 1,
-      "id": "a5483675-b2ff-471f-aaa3-2eecc4d847b8",
+      "id": "fc21dbc0-10ee-4f92-87d4-274787bc3727",
       "name": "Sticky Note"
     },
     {
@@ -110,10 +110,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.1,
       "position": [
-        128,
-        -80
+        -880,
+        112
       ],
-      "id": "a36e3227-e6e3-45c3-b92e-0368e977ff66",
+      "id": "942c6ca2-ef28-4b11-acd7-c5d6e7104c50",
       "name": "Transcribe a recording",
       "credentials": {
         "openAiApi": {
@@ -151,10 +151,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.1,
       "position": [
-        528,
-        240
+        -560,
+        704
       ],
-      "id": "853e61ca-3c53-4544-bc4d-7d7d0cc93d48",
+      "id": "c0d5d326-8a0f-4ca5-8a62-64cf000530dc",
       "name": "Message a model",
       "credentials": {
         "openAiApi": {
@@ -172,10 +172,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1312,
-        -96
+        672,
+        352
       ],
-      "id": "40418954-62be-4405-8508-59c24118eb01",
+      "id": "9d24ae63-aebd-449e-a984-4c86ca06a51f",
       "name": "Execute a SQL query",
       "credentials": {
         "postgres": {
@@ -194,10 +194,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.1,
       "position": [
-        1984,
-        -96
+        1200,
+        352
       ],
-      "id": "aa98a8c5-8101-4802-9045-1ce5cec6acc1",
+      "id": "42a8b6e0-faa6-4ef1-b954-0561bbdeb4a1",
       "name": "Generate audio",
       "credentials": {
         "openAiApi": {
@@ -216,10 +216,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2272,
-        -96
+        1472,
+        352
       ],
-      "id": "aabad3f7-047c-47f3-883e-64bc8650184d",
+      "id": "5b87e556-ef88-42fc-9751-0ff9e1b175ba",
       "name": "Respond to Webhook"
     },
     {
@@ -231,11 +231,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1088,
-        -640
+        560,
+        -432
       ],
       "typeVersion": 1,
-      "id": "af179b2e-3ec9-4fac-a558-805e1b4af39d",
+      "id": "bf8ca88e-096d-441f-83d8-18c86977cc11",
       "name": "Sticky Note1"
     },
     {
@@ -247,10 +247,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        912,
-        240
+        64,
+        704
       ],
-      "id": "429a680f-c322-4186-b981-2c9d26d2bc12",
+      "id": "18d5a6bf-8e72-4fe6-87be-939723bf4840",
       "name": "Execute a SQL query1",
       "credentials": {
         "postgres": {
@@ -268,10 +268,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1440,
-        256
+        1200,
+        704
       ],
-      "id": "fc9b3bfb-f22d-463a-8d5f-6cfce3577fa6",
+      "id": "4735407c-cd6d-467d-82d2-2ebf597f1da9",
       "name": "Respond to Webhook2"
     },
     {
@@ -283,10 +283,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        640,
-        -96
+        -272,
+        480
       ],
-      "id": "2926e732-9d07-4fae-91e5-a82a5dcf70fd",
+      "id": "be51bb73-7f85-4c87-aeea-ac7f3f04af7a",
       "name": "RTW - audio not readable"
     },
     {
@@ -317,10 +317,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -48,
-        224
+        -1136,
+        688
       ],
-      "id": "62b59eb4-266a-4a13-b8ac-846c58be71b7",
+      "id": "7a3fb2b8-d440-429e-a41f-09a1115882c2",
       "name": "If - is a voice record"
     },
     {
@@ -351,10 +351,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        352,
-        -80
+        -768,
+        496
       ],
-      "id": "3ccd7be0-b90a-4451-a19c-301b447f6e2b",
+      "id": "0d420d1e-144e-4622-a169-f01717cd9168",
       "name": "If - empty text"
     },
     {
@@ -384,10 +384,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1168,
-        240
+        544,
+        704
       ],
-      "id": "926c3221-dec2-4128-8b8b-6b24f3cf0be3",
+      "id": "a7f9a636-6197-4bb3-abc6-48f588900597",
       "name": "If - 5 question respond"
     },
     {
@@ -418,10 +418,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.1,
       "position": [
-        1584,
-        -96
+        880,
+        352
       ],
-      "id": "fd5cb4df-75c3-4e80-8804-20545c32d17e",
+      "id": "ac67d1eb-8fa7-4bb5-8d78-5cefc0c9bb16",
       "name": "Message feedback",
       "credentials": {
         "openAiApi": {
@@ -498,10 +498,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -144,
-        80
+        -1456,
+        224
       ],
-      "id": "e8b8c5d1-8f6a-4b8b-9f2a-0e5a1b7d9d2c",
+      "id": "b64dab2a-336f-4583-872e-c8458bb1d28a",
       "name": "If - missing required fields"
     },
     {
@@ -513,10 +513,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        80,
-        80
+        -1168,
+        208
       ],
-      "id": "b4f1c6a2-3c2f-45b8-8a1a-19b4a1b6f7f0",
+      "id": "a3c1eb94-9371-46b7-b285-1c61030c720c",
       "name": "RTW - missing required fields"
     },
     {
@@ -528,10 +528,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1088,
-        240
+        320,
+        704
       ],
-      "id": "c6f5a9a1-8f2b-4a8b-9f16-1d2e3a4b5c6d",
+      "id": "56a02d98-8b7f-4032-adb0-c2034765fa78",
       "name": "Count answers",
       "credentials": {
         "postgres": {
@@ -568,10 +568,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        256,
-        -224
+        -480,
+        112
       ],
-      "id": "8d7a6f5e-4c3b-4a2d-9c1b-0e1f2a3b4c5d",
+      "id": "3d1b300e-fc39-4b6f-9628-c46d694f913a",
       "name": "If - transcription failed"
     },
     {
@@ -583,10 +583,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        480,
-        -320
+        -144,
+        96
       ],
-      "id": "a1b2c3d4-e5f6-47a8-9b0c-1d2e3f4a5b6c",
+      "id": "8b9bbfa9-3973-43f7-9c29-8d5cec734cce",
       "name": "Ensure error log table",
       "credentials": {
         "postgres": {
@@ -604,10 +604,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        704,
-        -320
+        144,
+        96
       ],
-      "id": "f7e6d5c4-b3a2-41f0-9e8d-7c6b5a4d3e2f",
+      "id": "55d2f084-e31a-4b23-b56f-af80fddb834c",
       "name": "Log transcription error",
       "credentials": {
         "postgres": {
@@ -625,10 +625,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        928,
-        -320
+        432,
+        96
       ],
-      "id": "c1d2e3f4-5a6b-47c8-9d0e-1f2a3b4c5d6e",
+      "id": "263eab9d-97e6-40e9-ba61-3373af955db3",
       "name": "RTW - transcription failed"
     },
     {
@@ -654,10 +654,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
-        240
+        -208,
+        704
       ],
-      "id": "c8d3b8a1-1f2e-4a7b-9c6d-0e1f2a3b4c5d",
+      "id": "ef4c39aa-6a88-42ac-8ed0-7cc85611cac5",
       "name": "Parse model output"
     }
   ],
@@ -805,11 +805,6 @@
         ]
       ]
     },
-    "RTW - audio not readable": {
-      "main": [
-        []
-      ]
-    },
     "If - missing required fields": {
       "main": [
         [
@@ -826,11 +821,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "RTW - missing required fields": {
-      "main": [
-        []
       ]
     },
     "If - transcription failed": {
@@ -873,11 +863,6 @@
         ]
       ]
     },
-    "RTW - transcription failed": {
-      "main": [
-        []
-      ]
-    },
     "Count answers": {
       "main": [
         [
@@ -907,11 +892,11 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "16f5ae19-c07b-4178-9f18-44504a70473b",
+  "versionId": "3b8060d7-0b80-4948-8026-c89dfe96baee",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "a27974cdf4529dc831ef8fe70c5d901e8eefe1b7f0015ac585ea3af116bfcb6a"
   },
-  "id": "dYtaUtcjnit1F53Q",
+  "id": "p1DpgOJfShhQT8jY",
   "tags": []
 }
