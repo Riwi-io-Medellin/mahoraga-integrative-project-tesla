@@ -193,7 +193,7 @@
 }
 
 .empty-cards-section {
-    margin-top: 15rem;
+    margin-top: 18rem;
     background-color: var(--bg-dark-primary);
     padding: 4rem 2rem 6rem;
 }
@@ -206,6 +206,10 @@
     margin: 0 auto;
 }
 
+.empty-card:hover{
+    transform: translateY(-5px);
+    border: solid 1px var(--border-light);
+}
 .empty-card {
     height: 240px;
     border-radius: 18px;
@@ -221,6 +225,7 @@
     text-align: center;
     padding: 1.2rem;
     gap: 0.8rem;
+    transition: all 0.3s ease-in;
 }
 
 .empty-card:nth-child(1) {
@@ -240,4 +245,127 @@
     font-size: 0.95rem;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.78);
+}
+
+.roles-carousel-section {
+    background-color: var(--bg-dark-primary);
+    padding: 4rem 2rem 6rem;
+    overflow: visible;
+}
+
+.roles-carousel {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.roles-track {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 1rem 0 2rem;
+}
+
+.roles-track::-webkit-scrollbar {
+    height: 0;
+}
+
+.roles-track {
+    scrollbar-width: none;
+}
+
+.role-card {
+    min-width: 860px;
+    height: 500px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.25));
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.6rem;
+    transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.role-tag {
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+.role-title {
+    margin: 0;
+    font-size: 1.6rem;
+    letter-spacing: 0.02em;
+    opacity: 0.75;
+    transition: transform 0.35s ease, letter-spacing 0.35s ease, opacity 0.35s ease;
+}
+
+.role-card.is-active {
+    border-color: var(--border-light);
+    transform: translateY(-6px);
+}
+
+.role-card.is-active .role-title {
+    letter-spacing: 0.12em;
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+.roles-controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.roles-arrow {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.roles-arrow lord-icon {
+    display: block;
+}
+
+.roles-arrow.is-left lord-icon {
+    transform: rotate(180deg);
+}
+
+.roles-arrow:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-light);
+    box-shadow: var(--shadow-glow-soft);
+}
+
+.roles-arrow:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .role-card {
+        min-width: 340px;
+        height: 260px;
+    }
 }
