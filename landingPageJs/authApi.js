@@ -3,7 +3,7 @@ const API_ORIGIN =
     ? window.location.origin
     : `${window.location.protocol}//${window.location.hostname}:3000`;
 
-const USERS_API_URL = `${API_ORIGIN}/api/users`;
+const USERS_API_URL = `${API_ORIGIN}/users`;
 
 // DTO para el registro: define la forma del payload que viaja al backend.
 export class UserCreateDTO {
