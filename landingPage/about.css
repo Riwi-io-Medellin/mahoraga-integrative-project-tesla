@@ -1,6 +1,6 @@
 
 .separador {
-    margin-top: 1rem;
+    margin-top: 12rem;
     width: 100%;
     display: flex;
     justify-content: center;
@@ -11,7 +11,7 @@
     filter: brightness(70%);
     width: 800px;
 }
-h
+
 .about {
     background-color: #000000;
     position: relative;
@@ -23,7 +23,7 @@ h
 .we {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.1rem;
+    gap: 1rem;
     overflow: hidden;
     max-height: 800px;
 }

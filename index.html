@@ -146,16 +146,94 @@
         </section>
         <section class="empty-cards-section" aria-label="Upcoming content">
             <div class="empty-cards">
-                <div class="empty-card"></div>
-                <div class="empty-card"></div>
-                <div class="empty-card"></div>
+                <div class="empty-card">
+                        <lord-icon
+                       src="./json-icons/system-regular-160-trending-up-hover-trend-up.json"
+                       trigger="hover"
+                       style="width:200px;height:200px;">
+                    </lord-icon>
+                    <p>Elevate your core technical skills through guided practice, measurable insights, and professional tracking.</p>
+                </div>
+                <div class="empty-card">
+                    <lord-icon
+                        src="./json-icons/system-regular-76-newspaper-hover-newspaper.json"
+                        trigger="hover"
+                        style="width:200px;height:200px;">
+                    </lord-icon>
+                    <p>Connect with real software development opportunities through rehearsals and industry-aligned feedback.</p>
+                </div>
+                 
+                <div class="empty-card">
+                    <lord-icon
+                        src="./json-icons/system-solid-47-chat-hover-chat.json"
+                        trigger="hover"
+                        colors = "primary:#ffffff"
+                        style="width:200px;height:200px;">
+                    </lord-icon>
+                    <p>Deliver an exceptional user experience that guides each candidate with clarity, empathy, and measurable outcomes.</p>
+                </div>
             </div>
         </section>
             <div class="separador">
                 <img src="./img/mahoraga.png" alt="Mahoraga mascot logo" class="mahoragaLogo">
             </div>
 
-           
+            <section class="roles-carousel-section" aria-label="Developer roles carousel">
+                <div class="roles-header">
+                    <div class="roles-header-content">
+                        <p class="roles-eyebrow">Rules</p>
+                        <h2 class="roles-heading">Our stack</h2>
+                        <p class="roles-description">Explora los perfiles más demandados y encuentra el camino que mejor encaja con tus habilidades.</p>
+                    </div>
+                </div>
+                <div class="roles-carousel" data-role-carousel>
+                    <div class="roles-track" tabindex="0" aria-live="polite">
+                        <article class="role-card is-active" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev Frontend</h3>
+                        </article>
+                        <article class="role-card" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev Backend</h3>
+                        </article>
+                        <article class="role-card" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev Fullstack</h3>
+                        </article>
+                        <article class="role-card" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev Mobile</h3>
+                        </article>
+                        <article class="role-card" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev Data</h3>
+                        </article>
+                        <article class="role-card" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev DevOps</h3>
+                        </article>
+                    </div>
+
+                    <div class="roles-controls">
+                        <button class="roles-arrow is-left" type="button" data-role-prev aria-label="Previous role">
+                               <lord-icon
+                                    src="./json-icons/system-regular-26-play-hover-play.json"
+                                    trigger="hover"
+                                    style="width:30px;height:30px;">
+                            </lord-icon>
+                        </button>
+                        <button class="roles-arrow" type="button" data-role-next aria-label="Next role">
+                               <lord-icon
+                                    src="./json-icons/system-regular-26-play-hover-play.json"
+                                    trigger="hover"
+                                    style="width:30px;height:30px;">
+                            </lord-icon>
+                        </button>
+                    </div>
+                </div>
+            </section>
+<!-- 
+           jj -->
             <footer id="contact">
                 <div class="footer-content">
                     <div class="footer-section">
@@ -351,6 +429,7 @@
 
 
     
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
     <script type="module" src="./landingPageJs/main.js"></script>
 
 </body>

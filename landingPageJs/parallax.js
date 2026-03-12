@@ -8,12 +8,11 @@ export function initParallax() {
     window.addEventListener("scroll", () => {
         const scrollY = window.scrollY;
         const windowHeight = window.innerHeight;
-        const progress = Math.min(scrollY / (windowHeight * 0.9), 1);
-        const eased = Math.pow(progress, 0.85);
+        const progress = Math.min(scrollY / windowHeight, 1);
 
-        const scaleHero = 1 - eased * 0.28;
-        const translateHero = eased * 120;
-        const opacityHero = 1 - eased * 1.05;
+        const scaleHero = 1 - progress * 0.3;
+        const translateHero = progress * 150;
+        const opacityHero = 1 - progress * 1.2;
 
         if (slogan) {
             slogan.style.transform = `translateY(${translateHero}px) scale(${scaleHero})`;
@@ -21,17 +20,13 @@ export function initParallax() {
         }
 
         if (interfaz) {
-            const translateInterfaz = eased * 180;
-            const scaleInterfaz = 1 - eased * 0.42;
-            const opacityInterfaz = 1 - eased * 1.2;
-            interfaz.style.transform = `translateY(${translateInterfaz}px) scale(${scaleInterfaz})`;
-            interfaz.style.opacity = opacityInterfaz;
-            interfaz.style.filter = "";
+            interfaz.style.transform = `translateY(${translateHero}px) scale(${scaleHero})`;
+            interfaz.style.opacity = opacityHero;
         }
 
         if (materias) {
-            const translateMaterias = 220 - eased * 220;
-            const scaleMaterias = 0.92 + eased * 0.08;
+            const translateMaterias = 200 - progress * 200;
+            const scaleMaterias = 0.9 + progress * 0.1;
             materias.style.transform = `translateY(${translateMaterias}px) scale(${scaleMaterias})`;
         }
 
