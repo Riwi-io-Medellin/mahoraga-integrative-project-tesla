@@ -139,11 +139,11 @@ export const getInterviewQuestions = async (req, res) => {
 }
 
 export const newInterviewQuestionReq = async (req, res) => {
-    const { id_session, id_question} = res.body
+    const { id_session, id_question, id_questions } = req.body
     const missingFields = []
 
     if (!id_session) missingFields.push('id_session')
-    if (!id_question) missingFields.push('id_question')
+    if (!id_question && !Array.isArray(id_questions)) missingFields.push('id_question')
 
     if (missingFields.length > 0) {
         return res.status(400).json({
@@ -153,6 +153,18 @@ export const newInterviewQuestionReq = async (req, res) => {
     }
 
     try {
+        if (Array.isArray(id_questions) && id_questions.length > 0) {
+            const createdInstances = []
+            for (const questionId of id_questions) {
+                const created = await newInterviewQuestion(id_session, questionId)
+                createdInstances.push(created)
+            }
+            return res.status(201).json({
+                message: 'Las question instances se crean correctamente.',
+                questionInstances: createdInstances
+            })
+        }
+
         const newQuestionInstance = await newInterviewQuestion(id_session, id_question)
         res.status(201).json({
             message: 'La question instance se crea correctamente.',
