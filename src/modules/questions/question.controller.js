@@ -3,7 +3,9 @@ import {
     createQuestion,
     getInterviewQuestions as getInterviewQuestionsService,
     getQuestionByLevel as getQuestionByLevelService,
-    updateQuestion as updateQuestionService
+    updateQuestion as updateQuestionService,
+    newInterviewQuestion,
+    newQuestionAnswered
 } from './question.service.js'
 
 export const getQuestions = async (req, res) => {
@@ -131,5 +133,59 @@ export const getInterviewQuestions = async (req, res) => {
         res.status(500).json({
             error: 'Error al obtener preguntas de interview.'
         })
+    }
+}
+
+export const newInterviewQuestionReq = async (req, res) => {
+    const { id_session, id_question} = res.body
+    const missingFields = []
+
+    if (!id_session) missingFields.push('id_session')
+    if (!id_question) missingFields.push('id_question')
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            error: 'Error submitting question instance, debes completar todos los campos.',
+            missingFields
+        })
+    }
+
+    try {
+        const newQuestionInstance = await newInterviewQuestion(id_session, id_question)
+        res.status(201).json({
+            message: 'La question instance se crea correctamente.',
+            questionInstance: newQuestionInstance
+        })
+    } catch (error) {
+        console.error('Error creating question instance', error)
+        res.status(500).json({ error: error.message })
+    }
+}
+
+export const newQuestionAnsweredReq = async (req, res) =>{
+    const { id_user, answer, score, feedback, answered_at } = req.body
+    const missingFields = [];
+
+    if (!id_user) missingFields.push('id_user')
+    if (!answer) missingFields.push('answer')
+    if (!score) missingFields.push('score')
+    if (!feedback) missingFields.push('feedback')
+    if (!answered_at) missingFields.push('answered_at')
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            error: 'Error submitting question answered, debes completar todos los campos.',
+            missingFields
+        })
+    }
+    try{
+        const newAnswered = await newQuestionAnswered(id_user, answer, score, feedback, answered_at)
+        res.status(201).json({
+            message: `the new answered question was created `,
+            questionanswered: newAnswered
+        })
+    }catch(error ) {
+        console.error(`Error , creating de new answered question`, error)
+        res.status(500).json({error: error.message})
     }
 }

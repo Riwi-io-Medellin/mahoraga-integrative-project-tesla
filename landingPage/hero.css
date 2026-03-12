@@ -7,8 +7,6 @@
     gap: 2rem;
     transition: transform 0.1s linear, opacity 0.1s linear;
     will-change: transform, opacity;
-    opacity: 0;
-    animation: fadeUp 0.9s ease forwards;
 }
 
 .slogan h1 {
@@ -26,20 +24,17 @@
     border-radius: 1rem;
     display: flex;
     justify-content: center;
-
+    margin-top: 3rem;
     transition: transform 0.1s linear, opacity 0.1s linear;
     will-change: transform, opacity;
-    opacity: 0;
-    animation: fadeUp 0.9s ease 0.2s forwards;
-    transform-origin: center top;
 }
 
 .interfaz img {
-    margin-top: 2rem;
     position: relative;
-    width: 1150px;
-
-
+    width: 750px;
+    border-radius: 1rem;
+    border: solid 3px var(--border-light);
+    box-shadow: var(--shadow-glow-strong);
     z-index: 1000;
 }
 
@@ -51,5 +46,4 @@
     height: auto;
     z-index: -1;
     pointer-events: none;
-    animation: shineFloat 5s ease-in-out infinite;
 }
