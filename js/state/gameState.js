@@ -2,11 +2,11 @@ export const gameState = {
   currentTechnology: "",
 
   progress: {
-    python: [1,2],
-    html: [1,2],
-    css: [1,2,3],
-    javascript: [1,2,3],
-    sql: [1,2,3,4,5,6,7,8,9,10,11,12,13   ]
+    python: [],
+    html: [],
+    css: [],
+    javascript: [],
+    sql: []
   }
 };
 
