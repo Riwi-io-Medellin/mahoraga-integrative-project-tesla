@@ -41,7 +41,7 @@ export const createUsers = async (user_name, email, password, user_status, id_la
         0,
         0
     FROM topic t
-    JOIN asinated_level l ON l.id_asinated_level = 1`;
+    CROSS JOIN asinated_level l`;
 
     const client = await pool.connect();
     try {
