@@ -11,6 +11,9 @@ import {
   getLoggedInUser,
   requireLoggedInUser,
 } from "./services/sessionService.js";
+import { markNodeCompleted } from "./state/gameState.js";
+
+const PASSING_SCORE = 65;
 
 document.addEventListener("DOMContentLoaded", () => {
   const chatWorld = document.querySelector("#chatWorld");
@@ -152,6 +155,16 @@ document.addEventListener("DOMContentLoaded", () => {
       `<strong>${t("interviewer.label")}:</strong> Resultado: ${summary.score} pts • ${summary.estimatedLevel}.`,
     );
     appendMessage("assistant", summary.feedback);
+
+    if (summary.score >= PASSING_SCORE && context?.technology && context?.nodeId) {
+      const user = getLoggedInUser();
+      markNodeCompleted(context.technology, context.nodeId, user?.id_user);
+      document.dispatchEvent(
+        new CustomEvent("progress:updated", {
+          detail: { technology: context.technology, nodeId: context.nodeId },
+        }),
+      );
+    }
   }
 
   async function sendAnswer() {

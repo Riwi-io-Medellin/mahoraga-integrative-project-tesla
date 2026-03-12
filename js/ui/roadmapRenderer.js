@@ -1,20 +1,8 @@
-import { pythonMap } from "../data/maps/pythonMap.js";
-import { htmlMap } from "../data/maps/htmlMap.js";
-import { cssMap } from "../data/maps/cssMap.js";
-import { javascriptMap } from "../data/maps/javaScriptMap.js";
-import { sqlMap } from "../data/maps/sqlMap.js";
+import { getMapByTechnology } from "../data/maps/mapsRegistry.js";
 import { gameState } from "../state/gameState.js";
 
-const MAPS = {
-  python: pythonMap,
-  html: htmlMap,
-  css: cssMap,
-  javascript: javascriptMap,
-  sql: sqlMap,
-};
-
 export function getCurrentMap() {
-  return MAPS[gameState.currentTechnology] || [];
+  return getMapByTechnology(gameState.currentTechnology);
 }
 
 export function renderRoadmap() {
