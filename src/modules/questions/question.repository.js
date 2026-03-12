@@ -164,6 +164,7 @@ export const newQuestionAnswered = async (id_user, answer, score, feedback, answ
 export const getInterviewQuestions = async ({
     id_level = null,
     id_language = null,
+    id_user = null,
     technology = '',
     topic = '',
     limit = 5
@@ -180,7 +181,12 @@ export const getInterviewQuestions = async ({
         let response = { rows: [] }
 
         for (const [currentLevel, currentLanguage] of fallbackChain) {
-            response = await queryInterviewQuestions(currentLevel, currentLanguage, topicIds)
+            response = await queryInterviewQuestions(
+                currentLevel,
+                currentLanguage,
+                topicIds,
+                id_user
+            )
 
             if (response.rows.length) {
                 break
@@ -199,7 +205,7 @@ export const getInterviewQuestions = async ({
     }
 }
 
-async function queryInterviewQuestions(id_level, id_language, topicIds = []) {
+async function queryInterviewQuestions(id_level, id_language, topicIds = [], id_user = null) {
     return pool.query(
         `
         SELECT
@@ -213,9 +219,19 @@ async function queryInterviewQuestions(id_level, id_language, topicIds = []) {
         WHERE ($1::int IS NULL OR q.id_level = $1)
             AND ($2::int IS NULL OR qt.id_language = $2)
             AND (cardinality($3::int[]) = 0 OR q.id_topic = ANY($3::int[]))
+            AND (
+                $4::uuid IS NULL
+                OR NOT EXISTS (
+                    SELECT 1
+                    FROM question_instance qi
+                    JOIN interview_session s ON s.id_session = qi.id_session
+                    WHERE qi.id_question = q.id_question
+                        AND s.id_user = $4
+                )
+            )
             AND qt.question_text IS NOT NULL
         `,
-        [id_level, id_language, topicIds]
+        [id_level, id_language, topicIds, id_user]
     )
 }
 
