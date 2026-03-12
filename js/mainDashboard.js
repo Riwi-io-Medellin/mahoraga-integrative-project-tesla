@@ -1,10 +1,11 @@
-import { initDashboardRenderer, setActiveTechnology } from "./ui/dashboardRenderer.js";
+import { initDashboardRenderer, setActiveTechnology, updateTechnologyPercents } from "./ui/dashboardRenderer.js";
 import { initPhotoProfile } from "./data/profile/modalProfile.js";
 import { initDetailPanel } from "./ui/viewManager.js";
 import { renderRoadmap } from "./ui/roadmapRenderer.js";
 import { applyTranslations, t } from "./services/i18n.js";
 import { requireLoggedInUser } from "./services/sessionService.js";
 import { initDashboardIdentity } from "./ui/userIdentity.js";
+import { loadProgress } from "./state/gameState.js";
 
 function initRoadmapDrag() {
   const container = document.querySelector(".roadmap-container");
@@ -97,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!user) return;
 
   applyTranslations(document);
+  loadProgress(user?.id_user);
   initRoadmapDrag();
   initSidebarToggle();
   initDashboardRenderer();
@@ -106,6 +108,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setActiveTechnology("python");
   renderRoadmap();
+  updateTechnologyPercents();
+
+  document.addEventListener("progress:updated", () => {
+    updateTechnologyPercents();
+    renderRoadmap();
+  });
 
   let resizeRaf = null;
   window.addEventListener("resize", () => {

@@ -32,6 +32,9 @@
       border-color 0.22s ease, background 0.3s ease, color 0.3s ease;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
     text-align: left;
+    position: relative;
+    overflow: hidden;
+    --tech-glow: rgba(255, 255, 255, 0.28);
 }
 
 .tech-btn img {
@@ -45,28 +48,54 @@
     width: 34px;
 }
 
+.tech-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    box-shadow: inset 0 0 0 1px var(--tech-glow), 0 8px 22px -6px var(--tech-glow);
+    pointer-events: none;
+}
+
+.tech-btn:hover::after,
+.tech-btn:focus-visible::after {
+    opacity: 1;
+}
+
+.tech-btn:hover,
+.tech-btn:focus-visible {
+    border-color: var(--tech-glow);
+}
+
 /* ESTADOS */
 
 /* BACKGROUND BOTONES */
 
 .python {
     background: linear-gradient(135deg, #2b58767d, #3777ab8d);
+    --tech-glow: rgba(55, 119, 171, 0.65);
 }
 
 .html {
     background: linear-gradient(135deg, #7e2e1778, #e34f2682);
+    --tech-glow: rgba(227, 79, 38, 0.6);
 }
 
 .css {
     background: linear-gradient(135deg, #173e9c7d, #2965f187);
+    --tech-glow: rgba(41, 101, 241, 0.6);
 }
 
 .javascript {
     background: linear-gradient(135deg, #857a1a7e, #c6b32685);
+    --tech-glow: rgba(198, 179, 38, 0.6);
 }
 
 .sql {
     background: linear-gradient(135deg, #1c2a6b70, #293d927f);
+    --tech-glow: rgba(41, 61, 146, 0.6);
 }
 
 .tech-btn.python.active {
