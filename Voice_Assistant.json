@@ -1,0 +1,917 @@
+{
+  "name": "Voice_Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "=voice-feedback",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -640,
+        224
+      ],
+      "id": "86ab6cca-8ece-44cb-a99f-694cd0eab126",
+      "name": "Webhook",
+      "webhookId": "ab18e0c9-d9d0-43c9-a219-41031e0f0398",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rdQ3Ghdlvk0eCTAB",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec5729cb-4c0f-4b39-bcdc-51d955c13002",
+              "name": "id_session",
+              "value": "={{ $json.body.id_session }}",
+              "type": "number"
+            },
+            {
+              "id": "9aeabf23-90b6-4064-bfad-8eaed58993a5",
+              "name": "id_question_instance",
+              "value": "={{ $json.body.id_question_instance }}",
+              "type": "number"
+            },
+            {
+              "id": "c8a77140-216e-4b9a-9b4d-aa5238358c36",
+              "name": "id_user",
+              "value": "={{ $json.body.id_user }}",
+              "type": "number"
+            },
+            {
+              "id": "477e0502-e190-484a-b4a5-f8dd325c3396",
+              "name": "order_num",
+              "value": "={{ $json.body.order_num }}",
+              "type": "number"
+            },
+            {
+              "id": "de1050fc-0a5f-4096-b826-8abb2150d276",
+              "name": "id_question",
+              "value": "={{ $json.body.id_question }}",
+              "type": "number"
+            },
+            {
+              "id": "004d05cc-0edd-49e2-a4cd-967cf66f2338",
+              "name": "audio",
+              "value": "={{ $json.body.audio }}",
+              "type": "string"
+            },
+            {
+              "id": "6035373c-0ffd-4abc-ab32-7f2d0020b173",
+              "name": "texto",
+              "value": "={{ $json.body.texto }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        224
+      ],
+      "id": "34662117-f17e-404b-baea-7bdc652ad03b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "Flujo IA (n8n):\n\n1. Al iniciar una prueba, al usuario se le habilita la opcion de ia.\n2. El usuario al presionar la opcion responde la pregunta por voz en caso de que el audio no sea muy legible, solicitar que de la instrucción mediante escritura en un campo de texto.\n3. Son un total de 5 preguntas solo abiertas, estas salen de forma aleatorio dependiendo su nivel.\n4. una vez responda las preguntas, almacenarlas en un array en donde estos se van a dar una calificación 1/5.\n5. al finalizar dar un feedback sobre el resultado, un feedback en un modal cuando se presione el boton de finalizar entrevista.\n",
+        "height": 240,
+        "width": 816,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "a5483675-b2ff-471f-aaa3-2eecc4d847b8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "audio",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        128,
+        -80
+      ],
+      "id": "a36e3227-e6e3-45c3-b92e-0368e977ff66",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=Eres un evaluador técnico de la Plataforma de Evaluación Técnica.\nTu trabajo es calificar la respuesta de un candidato a una pregunta técnica abierta.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Si la respuesta es correcta o parcialmente correcta → puntaje 1\n3. Si la respuesta es incorrecta, vacía o no relacionada → puntaje 0\n4. La razón debe ser máximo 1 oración en español.\n\nFORMATO DE RESPUESTA (exacto):\n{\"puntaje\": 1, \"razon\": \"El candidato explicó correctamente el concepto.\"}\n{\"puntaje\": 0, \"razon\": \"No mencionó los aspectos clave del tema.\"}"
+            },
+            {
+              "content": "=Pregunta: {{ $('Edit Fields').item.json.pregunta }}\n\nRespuesta del candidato: {{ $json.text ?? $('Edit Fields').item.json.texto }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 150,
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        528,
+        240
+      ],
+      "id": "853e61ca-3c53-4544-bc4d-7d7d0cc93d48",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  qi.order_num,\n  qt.question_text   AS pregunta,\n  qa.answer          AS respuesta,\n  qa.score           AS puntaje,\n  qa.feedback        AS razon\nFROM question_answered qa\nJOIN question_instance qi\n  ON qa.id_question_instance = qi.id_question_instance\nJOIN question_translation qt\n  ON qi.id_question = qt.id_question\nWHERE qi.id_session = {{ $('Edit Fields').item.json.id_session }}\nORDER BY qi.order_num ASC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1312,
+        -96
+      ],
+      "id": "40418954-62be-4405-8508-59c24118eb01",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "xNLXXhuwHFz5Iz9d",
+          "name": "base de datos"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $('Message feedback').item.json.message.content }}",
+        "voice": "nova",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1984,
+        -96
+      ],
+      "id": "aa98a8c5-8101-4802-9045-1ce5cec6acc1",
+      "name": "Generate audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2272,
+        -96
+      ],
+      "id": "aabad3f7-047c-47f3-883e-64bc8650184d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "content": "\n\nUsuario activa opción IA\n        ↓\nResponde pregunta (voz o texto)\n        ↓\n¿Es audio?\n├── SÍ → Whisper → ¿texto vacío?\n│              ├── SÍ  → pedir respuesta por texto\n│              └── NO  → continuar\n└── NO → usar texto directo\n        ↓\nChatGPT evalúa la respuesta\n(¿es correcta? → 1 punto, incorrecta → 0)\n        ↓\nGuardar en array [pregunta, respuesta, puntaje]\n        ↓\n¿Ya van 5 preguntas?\n├── NO → siguiente pregunta (loop)\n└── SÍ → ChatGPT genera feedback completo\n                ↓\n            TTS vocaliza el feedback\n                ↓\n        Modal con feedback + puntaje X/5",
+        "height": 464,
+        "width": 816,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1088,
+        -640
+      ],
+      "typeVersion": 1,
+      "id": "af179b2e-3ec9-4fac-a558-805e1b4af39d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO question_answered (\n  id_question_instance,\n  id_user,\n  id_answer_option,\n  answer,\n  score,\n  feedback,\n  is_transcription_valid,\n  transcription_service,\n  answered_at\n) VALUES (\n  {{ $('Edit Fields').item.json.id_question_instance }},\n  {{ $('Edit Fields').item.json.id_user }},\n  NULL,\n  '{{ ($json.text ?? $('Edit Fields').item.json.texto) ? ($json.text ?? $('Edit Fields').item.json.texto).replace(/'/g, \"''\") : '' }}',\n  {{\n  $('Parse model output').item.json.puntaje\n  }},\n  '{{ ($('Parse model output').item.json.razon || '').replace(/'/g, \"''\") }}',\n  {{ ($json.text && $json.text.trim().length > 0) ? true : false }},\n  'whisper-1',\n  NOW()\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        912,
+        240
+      ],
+      "id": "429a680f-c322-4186-b981-2c9d26d2bc12",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "iAq01FfFEhzoQlYe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"continuar\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1440,
+        256
+      ],
+      "id": "fc9b3bfb-f22d-463a-8d5f-6cfce3577fa6",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"audio_no_legible\",\n  \"mensaje\": \"No pudimos entender tu audio, por favor escribe tu respuesta.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        640,
+        -96
+      ],
+      "id": "2926e732-9d07-4fae-91e5-a82a5dcf70fd",
+      "name": "RTW - audio not readable"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "27ba600b-75ef-4047-b065-2215f8000cf5",
+              "leftValue": "={{ $binary.audio ? '1' : ($json.audio ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -48,
+        224
+      ],
+      "id": "62b59eb4-266a-4a13-b8ac-846c58be71b7",
+      "name": "If - is a voice record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3eaec3fa-02e3-4f18-9d80-01c5e2b371b1",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        352,
+        -80
+      ],
+      "id": "3ccd7be0-b90a-4451-a19c-301b447f6e2b",
+      "name": "If - empty text"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f6a02a37-83da-4852-b340-908bccb1e6dd",
+              "leftValue": "={{ $('Count answers').item.json.count }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1168,
+        240
+      ],
+      "id": "926c3221-dec2-4128-8b8b-6b24f3cf0be3",
+      "name": "If - 5 question respond"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Resultados de la sesión:\n{{ JSON.stringify($input.all().map(i => i.json)) }}"
+            },
+            {
+              "role": "system",
+              "content": "Eres NOVA, asistente de voz de la Plataforma de Evaluación Técnica.\nGeneras feedback motivador y útil para candidatos al finalizar su prueba.\n\nREGLAS:\n1. Máximo 4 oraciones cortas (el texto se convertirá a voz).\n2. Menciona el puntaje final X/5 de forma positiva.\n3. Indica en qué tema(s) debe reforzar, siendo específico.\n4. Termina con una frase motivadora.\n5. Tono: cercano, claro y profesional.\n6. Idioma: español."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 350,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1584,
+        -96
+      ],
+      "id": "fd5cb4df-75c3-4e80-8804-20545c32d17e",
+      "name": "Message feedback",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1d9c9d0-2b16-4f2c-9f05-efc6d0a0b101",
+              "leftValue": "={{ $('Edit Fields').item.json.id_session }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0f6f0f41-7a42-4d5f-94e8-2c3b6bb4d3e4",
+              "leftValue": "={{ $('Edit Fields').item.json.id_question_instance }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c60c0f4b-86bd-4f7c-85c8-6739d2b9a1f5",
+              "leftValue": "={{ $('Edit Fields').item.json.id_user }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a6a0f3f3-2c94-4015-9a94-3a7cc7e7d62c",
+              "leftValue": "={{ $('Edit Fields').item.json.order_num }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b5f4d6b3-7cda-4c57-a7ef-0f6c0c4b2d78",
+              "leftValue": "={{ $('Edit Fields').item.json.id_question }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -144,
+        80
+      ],
+      "id": "e8b8c5d1-8f6a-4b8b-9f2a-0e5a1b7d9d2c",
+      "name": "If - missing required fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"missing_required_fields\",\n  \"mensaje\": \"Faltan campos obligatorios en la solicitud.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        80,
+        80
+      ],
+      "id": "b4f1c6a2-3c2f-45b8-8a1a-19b4a1b6f7f0",
+      "name": "RTW - missing required fields"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(DISTINCT qi.order_num)::int AS count\nFROM question_answered qa\nJOIN question_instance qi\n  ON qa.id_question_instance = qi.id_question_instance\nWHERE qi.id_session = {{ $('Edit Fields').item.json.id_session }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1088,
+        240
+      ],
+      "id": "c6f5a9a1-8f2b-4a8b-9f16-1d2e3a4b5c6d",
+      "name": "Count answers",
+      "credentials": {
+        "postgres": {
+          "id": "iAq01FfFEhzoQlYe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ee84b6a4-6b8f-4e6d-8e0a-1d2b3c4d5e6f",
+              "leftValue": "={{ $json.error ? JSON.stringify($json.error) : '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        256,
+        -224
+      ],
+      "id": "8d7a6f5e-4c3b-4a2d-9c1b-0e1f2a3b4c5d",
+      "name": "If - transcription failed"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CREATE TABLE IF NOT EXISTS voice_assistant_error_log (\n  id SERIAL PRIMARY KEY,\n  id_session BIGINT,\n  id_question_instance BIGINT,\n  id_user BIGINT,\n  order_num INT,\n  id_question BIGINT,\n  error_type TEXT NOT NULL,\n  error_message TEXT,\n  raw_payload TEXT,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        -320
+      ],
+      "id": "a1b2c3d4-e5f6-47a8-9b0c-1d2e3f4a5b6c",
+      "name": "Ensure error log table",
+      "credentials": {
+        "postgres": {
+          "id": "iAq01FfFEhzoQlYe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO voice_assistant_error_log (\n  id_session,\n  id_question_instance,\n  id_user,\n  order_num,\n  id_question,\n  error_type,\n  error_message,\n  raw_payload\n) VALUES (\n  {{ $('Edit Fields').item.json.id_session }},\n  {{ $('Edit Fields').item.json.id_question_instance }},\n  {{ $('Edit Fields').item.json.id_user }},\n  {{ $('Edit Fields').item.json.order_num }},\n  {{ $('Edit Fields').item.json.id_question }},\n  'transcription_failed_or_timeout',\n  '{{ ($json.error ? JSON.stringify($json.error) : '').replace(/'/g, \"''\") }}',\n  '{{ JSON.stringify($json).replace(/'/g, \"''\") }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        704,
+        -320
+      ],
+      "id": "f7e6d5c4-b3a2-41f0-9e8d-7c6b5a4d3e2f",
+      "name": "Log transcription error",
+      "credentials": {
+        "postgres": {
+          "id": "iAq01FfFEhzoQlYe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"transcription_failed\",\n  \"mensaje\": \"No pudimos transcribir tu audio (posible timeout). Por favor escribe tu respuesta.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        928,
+        -320
+      ],
+      "id": "c1d2e3f4-5a6b-47c8-9d0e-1f2a3b4c5d6e",
+      "name": "RTW - transcription failed"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2c4f8a1-0c8c-4a5f-8a0e-1a2b3c4d5e6f",
+              "name": "puntaje",
+              "value": "={{ (() => { try { const obj = JSON.parse($('Message a model').item.json.message.content); return (obj?.puntaje ?? 0); } catch (e) { return 0; } })() }}",
+              "type": "number"
+            },
+            {
+              "id": "a9b1c2d3-e4f5-4a6b-9c0d-1e2f3a4b5c6d",
+              "name": "razon",
+              "value": "={{ (() => { try { const obj = JSON.parse($('Message a model').item.json.message.content); return (obj?.razon ?? 'Respuesta no valida del modelo.'); } catch (e) { return 'Respuesta no valida del modelo.'; } })() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        240
+      ],
+      "id": "c8d3b8a1-1f2e-4a7b-9c6d-0e1f2a3b4c5d",
+      "name": "Parse model output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If - missing required fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "If - transcription failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse model output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Message feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate audio": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "Count answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - is a voice record": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - empty text": {
+      "main": [
+        [
+          {
+            "node": "RTW - audio not readable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - 5 question respond": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message feedback": {
+      "main": [
+        [
+          {
+            "node": "Generate audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RTW - audio not readable": {
+      "main": [
+        []
+      ]
+    },
+    "If - missing required fields": {
+      "main": [
+        [
+          {
+            "node": "RTW - missing required fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - is a voice record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RTW - missing required fields": {
+      "main": [
+        []
+      ]
+    },
+    "If - transcription failed": {
+      "main": [
+        [
+          {
+            "node": "Ensure error log table",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - empty text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure error log table": {
+      "main": [
+        [
+          {
+            "node": "Log transcription error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log transcription error": {
+      "main": [
+        [
+          {
+            "node": "RTW - transcription failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RTW - transcription failed": {
+      "main": [
+        []
+      ]
+    },
+    "Count answers": {
+      "main": [
+        [
+          {
+            "node": "If - 5 question respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse model output": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "16f5ae19-c07b-4178-9f18-44504a70473b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a27974cdf4529dc831ef8fe70c5d901e8eefe1b7f0015ac585ea3af116bfcb6a"
+  },
+  "id": "dYtaUtcjnit1F53Q",
+  "tags": []
+}
