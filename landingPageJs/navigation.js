@@ -5,6 +5,9 @@ export function initSmoothScroll() {
             e.preventDefault();
 
             const targetId = this.getAttribute("href");
+            if (!targetId || targetId === "#") {
+                return;
+            }
             let target;
 
             switch(targetId) {
