@@ -128,18 +128,33 @@ export const getQuestionByLevel = async (id_level, id_topic, id_language) => {
 }
 
 
-export const newInterviewQuestion = async (id_session, id_question) => {
-    const query = `
-    insert into question_instance (id_session, id_question) values ($1, $2) returning *;
-    `
-    const values = [id_session, id_question]
-
+export const newInterviewQuestion = async (id_session, id_question, order_num) => {
+    const client = await pool.connect()
     try {
-        const response = await pool.query(query, values);
+        // Asegura un order_num secuencial si no llega desde el frontend
+        let effectiveOrder = Number(order_num)
+        if (!effectiveOrder) {
+            const { rows } = await client.query(
+                'SELECT COALESCE(MAX(order_num), 0) + 1 AS next FROM question_instance WHERE id_session = $1',
+                [id_session]
+            )
+            effectiveOrder = rows[0]?.next || 1
+        }
+
+        const query = `
+        INSERT INTO question_instance (id_session, id_question, order_num)
+        VALUES ($1, $2, $3)
+        RETURNING *;
+        `
+        const values = [id_session, id_question, effectiveOrder]
+
+        const response = await client.query(query, values);
         return response.rows[0];
     } catch (error) {
         console.error(`error: interview not created: ${error}`);
         throw error;
+    } finally {
+        client.release()
     }
 }
 

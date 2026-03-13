@@ -139,11 +139,13 @@ export const getInterviewQuestions = async (req, res) => {
 }
 
 export const newInterviewQuestionReq = async (req, res) => {
-    const { id_session, id_question} = res.body
+    const { id_session, id_questions } = req.body
     const missingFields = []
 
+    console.log('newInterviewQuestionReq body', req.body);
+
     if (!id_session) missingFields.push('id_session')
-    if (!id_question) missingFields.push('id_question')
+    if (!Array.isArray(id_questions) || !id_questions.length) missingFields.push('id_questions')
 
     if (missingFields.length > 0) {
         return res.status(400).json({
@@ -153,10 +155,27 @@ export const newInterviewQuestionReq = async (req, res) => {
     }
 
     try {
-        const newQuestionInstance = await newInterviewQuestion(id_session, id_question)
+        const created = []
+
+        id_questions.forEach((questionId, idx) => {
+            created.push({ questionId, order_num: idx + 1 })
+        })
+
+        console.log('question instances to create', created);
+
+        const stored = []
+        for (const item of created) {
+            const instance = await newInterviewQuestion(
+                id_session,
+                item.questionId,
+                item.order_num
+            )
+            stored.push(instance)
+        }
+
         res.status(201).json({
             message: 'La question instance se crea correctamente.',
-            questionInstance: newQuestionInstance
+            created: stored
         })
     } catch (error) {
         console.error('Error creating question instance', error)

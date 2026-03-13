@@ -1,13 +1,12 @@
 import { createInterview, endInterview } from './interview.services.js'
 
 export const createInterviewReq = async (req, res) => {
-    const {id_user, id_topic, id_level, session_status, date_ini} = req.body
+    const {id_user, id_topic, technology, id_level, date_ini} = req.body
     const missingFields = []
 
     if (!id_user) missingFields.push('id_user')
-    if (!id_topic) missingFields.push('id_topic')
+    if (!id_topic && !technology) missingFields.push('id_topic or technology')
     if (!id_level) missingFields.push('id_level')
-    if (!session_status) missingFields.push('session_status')
     if (!date_ini) missingFields.push('date_ini')
 
     if (missingFields.length > 0) {
@@ -18,7 +17,13 @@ export const createInterviewReq = async (req, res) => {
     }
 
     try {
-        const newInterview = await createInterview(id_user, id_topic, id_level, session_status, date_ini)
+        const newInterview = await createInterview({
+            id_user,
+            id_topic,
+            technology,
+            id_level,
+            date_ini
+        })
         res.status(201).json({
             message: 'La session se crea correctamente.',
             interview: newInterview
