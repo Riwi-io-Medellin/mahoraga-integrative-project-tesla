@@ -7,9 +7,6 @@ header {
     height: auto;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
     padding: 1rem 1rem 0 1rem;
     z-index: 1000;
     transition: background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
@@ -22,14 +19,7 @@ header h2 {
 .container-logo {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-    width: min(100%, 900px);
-}
-
-.nav ul {
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    width: 800px;
 }
 
 .buttons-login {

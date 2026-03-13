@@ -35,10 +35,6 @@ export async function fetchInterviewQuestions(context) {
     limit: String(context.totalQuestions || 5),
   });
 
-  if (context.idUser) {
-    params.set("id_user", String(context.idUser));
-  }
-
   const response = await fetch(`${API_BASE_URL}/questions/interview?${params.toString()}`);
 
   if (!response.ok) {
@@ -52,56 +48,6 @@ export async function fetchInterviewQuestions(context) {
   }
 
   return questions;
-}
-
-export async function createInterviewSession({ context, user }) {
-  if (!user?.id_user || !context?.nodeId || !context?.levelId) {
-    return null;
-  }
-
-  const payload = {
-    id_user: user.id_user,
-    id_topic: context.nodeId,
-    id_level: context.levelId,
-    session_status: "active",
-    date_ini: new Date().toISOString(),
-  };
-
-  const response = await fetch(`${API_BASE_URL}/interview`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error("Could not start interview session.");
-  }
-
-  const data = await response.json();
-  return data?.interview || null;
-}
-
-export async function saveInterviewQuestionInstances({ id_session, questions }) {
-  if (!id_session || !Array.isArray(questions) || !questions.length) {
-    return null;
-  }
-
-  const payload = {
-    id_session,
-    id_questions: questions.map((question) => question.id_question),
-  };
-
-  const response = await fetch(`${API_BASE_URL}/questions/instance`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error("Could not save interview questions.");
-  }
-
-  return response.json();
 }
 
 export async function evaluateInterviewSession({ questions, answers, context }) {

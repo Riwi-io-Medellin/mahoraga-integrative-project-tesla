@@ -1,10 +1,8 @@
 import { applyTranslations, t } from "./services/i18n.js";
 import {
   clearInterviewSession,
-  createInterviewSession,
   evaluateInterviewSession,
   fetchInterviewQuestions,
-  saveInterviewQuestionInstances,
   saveInterviewContext,
   saveInterviewSession,
 } from "./services/interviewService.js";
@@ -81,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
       topic: node.title,
       difficulty: node.difficulty || "basic",
       nodeId: Number(node.id),
-      idUser: user.id_user,
       levelId: Number(user?.id_level || 1),
       languageId: getInterviewLanguagePreference(user),
       totalQuestions: 5,
@@ -111,22 +108,14 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       clearInterviewSession();
       saveInterviewContext(context);
-      const interviewSession = await createInterviewSession({ context, user: getLoggedInUser() });
       const questions = await fetchInterviewQuestions(context);
       session = {
         contextKey: `${context.technology}:${context.topic}:${context.difficulty}`,
         currentIndex: 0,
         questions,
         answers: [],
-        sessionId: interviewSession?.id_session || null,
       };
       saveInterviewSession(session);
-      if (session.sessionId) {
-        await saveInterviewQuestionInstances({
-          id_session: session.sessionId,
-          questions,
-        });
-      }
       appendQuestion();
     } catch (error) {
       appendMessage(

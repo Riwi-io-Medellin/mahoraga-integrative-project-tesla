@@ -1,12 +1,9 @@
-import { error } from "console";
 import { pool } from "../../config/db.config.js";
 
 
 export const createInterview = async (id_user, id_topic, id_level, session_status, date_ini) => {
     const query = `
-    INSERT INTO interview_session (id_user, id_topic, id_level, session_status, date_ini)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *`;
+    INSERT INTO profile(id_user, id_topic, id_level, session_status, date_ini) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
     const values = [id_user, id_topic, id_level, session_status, date_ini];
 
     try {
