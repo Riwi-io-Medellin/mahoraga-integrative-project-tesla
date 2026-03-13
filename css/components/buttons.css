@@ -46,34 +46,6 @@
 }
 
 /* ESTADOS */
-/* HOVER */
-
-.tech-btn:hover {
-    transform: scale(1.018);
-    filter: brightness(1.1);
-    border-color: rgba(255, 255, 255, 0.28);
-    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.34);
-}
-
-.python:hover {
-    background: linear-gradient(135deg, #1f4f73, #2e6f9f);
-}
-
-.css:hover {
-    background: linear-gradient(135deg, #1843a4, #2f6fff);
-}
-
-.html:hover {
-    background: linear-gradient(135deg, #a9391a, #e35a2d);
-}
-
-.javascript:hover {
-    background: linear-gradient(135deg, #9c8d1f, #d6c12f);
-}
-
-.sql:hover {
-    background: linear-gradient(135deg, #1d2c70, #3348a8);
-}
 
 /* BACKGROUND BOTONES */
 
