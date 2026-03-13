@@ -1,9 +1,11 @@
 import {
   clearInterviewSession,
+  createInterviewSession,
   evaluateInterviewSession,
   fetchInterviewQuestions,
   getInterviewContext,
   getInterviewSession,
+  saveInterviewQuestionInstances,
   saveInterviewContext,
   saveInterviewSession,
 } from "./services/interviewService.js";
@@ -34,6 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Aterriza el contexto al idioma elegido por el usuario antes de pedir preguntas.
   context.languageId = getInterviewLanguagePreference(user);
+  context.idUser = user.id_user;
   saveInterviewContext(context);
 
   initInterviewIdentity();
@@ -42,8 +45,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindExitAction();
 
   try {
+    let sessionId = context.sessionId || getInterviewSession()?.sessionId || null;
+    if (!sessionId) {
+      const createdSession = await createInterviewSession({ context, user });
+      sessionId = createdSession?.id_session || null;
+      context.sessionId = sessionId;
+      saveInterviewContext(context);
+    }
+
     const questions = await fetchInterviewQuestions(context);
     const session = getInterviewSessionForContext(context, questions);
+    if (sessionId && !session.sessionId) {
+      session.sessionId = sessionId;
+      saveInterviewSession(session);
+      await saveInterviewQuestionInstances({ id_session: sessionId, questions });
+    }
     bindInterviewActions(session, context);
     renderCurrentQuestion(session, context);
   } catch (error) {

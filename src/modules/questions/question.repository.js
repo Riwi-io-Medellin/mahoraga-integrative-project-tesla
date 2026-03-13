@@ -1,4 +1,6 @@
+
 import { pool } from '../../config/db.config.js'
+
 
 export const consultationQuestion = async () => {
     try{
@@ -260,6 +262,7 @@ async function resolveTopicIds(technology) {
         })
         .map(({ id_topic }) => id_topic)
 }
+
 
 function buildInterviewKeywords(technology, topic) {
     return `${technology} ${topic}`
