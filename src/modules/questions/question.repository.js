@@ -144,15 +144,69 @@ export const newInterviewQuestion = async (id_session, id_question, order_num) =
         const query = `
         INSERT INTO question_instance (id_session, id_question, order_num)
         VALUES ($1, $2, $3)
+        ON CONFLICT (id_session, id_question) DO NOTHING
         RETURNING *;
         `
         const values = [id_session, id_question, effectiveOrder]
 
-        const response = await client.query(query, values);
-        return response.rows[0];
+        const response = await client.query(query, values)
+
+        // Si ya existía, devolvemos el registro actual para mantener compatibilidad
+        if (response.rowCount === 0) {
+            const { rows } = await client.query(
+                `
+                SELECT * FROM question_instance
+                WHERE id_session = $1 AND id_question = $2
+                `,
+                [id_session, id_question]
+            )
+            return rows[0]
+        }
+
+        return response.rows[0]
     } catch (error) {
-        console.error(`error: interview not created: ${error}`);
-        throw error;
+        console.error(`error: interview not created: ${error}`)
+        throw error
+    } finally {
+        client.release()
+    }
+}
+
+// Inserta en bloque todas las preguntas elegidas para una sesión de entrevista
+export const createQuestionInstances = async (id_session, id_questions = []) => {
+    if (!Array.isArray(id_questions) || id_questions.length === 0) {
+        return []
+    }
+
+    const client = await pool.connect()
+
+    try {
+        await client.query('BEGIN')
+
+        const nextOrderRes = await client.query(
+            'SELECT COALESCE(MAX(order_num), 0) + 1 AS next_order FROM question_instance WHERE id_session = $1',
+            [id_session]
+        )
+
+        const startOrder = nextOrderRes.rows[0]?.next_order || 1
+
+        const { rows } = await client.query(
+            `
+            INSERT INTO question_instance (id_session, id_question, order_num)
+            SELECT $1, qid, $3 + ord - 1
+            FROM unnest($2::int[]) WITH ORDINALITY AS t(qid, ord)
+            ON CONFLICT (id_session, id_question) DO NOTHING
+            RETURNING *
+            `,
+            [id_session, id_questions, startOrder]
+        )
+
+        await client.query('COMMIT')
+        return rows
+    } catch (error) {
+        await client.query('ROLLBACK')
+        console.error('Error creating question instances :', error)
+        throw error
     } finally {
         client.release()
     }
@@ -172,9 +226,6 @@ export const newQuestionAnswered = async (id_user, answer, score, feedback, answ
         throw error;
     }
 }
-
-
-
 
 
 
@@ -251,6 +302,13 @@ async function queryInterviewQuestions(id_level, id_language, topicIds = [], id_
         [id_level, id_language, topicIds, id_user]
     )
 }
+
+
+// Inserta una sola pregunta en la sesión, conservando compatibilidad con código previo
+export const createQuestionInstance = async (id_session, id_question, order_num = null) => {
+    return newInterviewQuestion(id_session, id_question, order_num)
+}
+
 
 async function resolveTopicIds(technology) {
     const normalizedTechnology = technology.trim().toLowerCase()

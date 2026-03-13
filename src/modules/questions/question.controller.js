@@ -4,8 +4,8 @@ import {
     getInterviewQuestions as getInterviewQuestionsService,
     getQuestionByLevel as getQuestionByLevelService,
     updateQuestion as updateQuestionService,
-    newInterviewQuestion,
-    newQuestionAnswered
+    newQuestionAnswered,
+    createQuestionInstances
 } from './question.service.js'
 
 export const getQuestions = async (req, res) => {
@@ -119,6 +119,12 @@ export const getInterviewQuestions = async (req, res) => {
         limit = '5'
     } = req.query
 
+    if (!id_user) {
+        return res.status(400).json({
+            error: 'Debes enviar id_user para evitar que se repitan preguntas ya respondidas por el usuario.'
+        })
+    }
+
     try {
         const data = await getInterviewQuestionsService({
             id_level: level ? Number(level) : null,
@@ -155,23 +161,17 @@ export const newInterviewQuestionReq = async (req, res) => {
     }
 
     try {
-        const created = []
+        const numericIds = id_questions
+            .map((value) => Number(value))
+            .filter((value) => Number.isInteger(value) && value > 0)
 
-        id_questions.forEach((questionId, idx) => {
-            created.push({ questionId, order_num: idx + 1 })
-        })
-
-        console.log('question instances to create', created);
-
-        const stored = []
-        for (const item of created) {
-            const instance = await newInterviewQuestion(
-                id_session,
-                item.questionId,
-                item.order_num
-            )
-            stored.push(instance)
+        if (!numericIds.length) {
+            return res.status(400).json({
+                error: 'No se enviaron preguntas válidas para crear las instancias.'
+            })
         }
+
+        const stored = await createQuestionInstances(id_session, numericIds)
 
         res.status(201).json({
             message: 'La question instance se crea correctamente.',
