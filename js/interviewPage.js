@@ -7,6 +7,8 @@ import {
   saveInterviewContext,
   saveInterviewSession,
 } from "./services/interviewService.js";
+import { buildN8nSessionPayload, sendN8nSessionPayload } from "./services/n8nFeedbackService.js";
+import { getN8nExtractionSnapshot, sendN8nAnswer, buildN8nAnswerPayload, ensureInterviewSessionId } from "./services/n8nBridge.js";
 import {
   getInterviewLanguageName,
   getInterviewLanguageOptions,
@@ -226,7 +228,7 @@ function renderPendingReview(session) {
   document.getElementById("feedbackScore").textContent = String(session.answers.filter(Boolean).length);
   document.getElementById("feedbackLevel").textContent = "En espera";
   document.getElementById("feedbackText").textContent =
-    "La respuesta actual ya se guardo en el array de sesion. El puntaje general se calculara al enviar toda la entrevista.";
+    "La respues ara al enviar toda la entrevista.";
 }
 
 async function renderInterviewSummary(session, context) {
@@ -239,6 +241,43 @@ async function renderInterviewSummary(session, context) {
   session.totalScore = summary.score;
   session.summary = summary;
   saveInterviewSession(session);
+
+  try {
+    const snapshot = getN8nExtractionSnapshot();
+    const ensured = await ensureInterviewSessionId({ context: snapshot.context, user: snapshot.user });
+    const id_session = ensured?.id_session || snapshot?.context?.id_session;
+
+    if (id_session) {
+      let lastResponse = null;
+      for (const answer of snapshot.answers) {
+        const payload = buildN8nAnswerPayload({
+          id_session,
+          id_question_instance: null,
+          id_user: snapshot?.user?.id_user || null,
+          order_num: answer.order_num,
+          id_question: answer.id_question,
+          texto: answer.answer,
+          audio: null,
+        });
+
+        // Envia todas las respuestas; la ultima deberia traer el feedback final.
+        lastResponse = await sendN8nAnswer({ payload });
+      }
+
+      if (lastResponse?.feedback || lastResponse?.summary) {
+        const feedbackText = lastResponse.feedback || lastResponse?.summary?.feedback;
+        const score = lastResponse.score || lastResponse?.summary?.score;
+        const level = lastResponse.estimatedLevel || lastResponse?.summary?.estimatedLevel;
+        if (feedbackText) document.getElementById("feedbackText").textContent = feedbackText;
+        if (score !== undefined && score !== null) document.getElementById("feedbackScore").textContent = String(score);
+        if (level) document.getElementById("feedbackLevel").textContent = level;
+      }
+    } else {
+      console.warn("No se pudo resolver id_session para n8n.");
+    }
+  } catch (error) {
+    console.error("No se pudo obtener feedback de n8n:", error);
+  }
 
   document.getElementById("questionText").textContent = "Interview completed";
   document.getElementById("questionLevel").textContent = "summary";
@@ -259,6 +298,7 @@ function renderFatalState(message) {
   document.getElementById("submitAnswer").disabled = true;
   document.getElementById("answerInput").disabled = true;
 }
+
 
 function getGlobalLevel(score) {
   if (score >= 85) {
