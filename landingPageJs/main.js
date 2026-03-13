@@ -4,12 +4,14 @@ import { initSmoothScroll } from './navigation.js';
 import { initCarousel } from '../landingPageJs/carousel.js';
 import { initAuthModal } from '../landingPageJs/modal.js';
 import { redirectLoggedInUser } from '../js/services/sessionService.js';
+import { initScrollEffects } from './scrollEffects.js';
 
 initCarousel();
 
 initParallax();
 
 initSmoothScroll();
+initScrollEffects();
 
 const root = document.body;
 let targetX = window.innerWidth / 2;

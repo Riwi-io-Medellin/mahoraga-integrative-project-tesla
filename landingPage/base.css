@@ -90,3 +90,37 @@ hr {
     border: none;
     border-top: 2px solid rgb(83, 83, 83);
 }
+.joinAdaptation {
+    margin-bottom: 5rem;
+    text-align: center;
+}
+
+.adaptation-title {
+    margin-top: 5rem;
+    font-size: 10rem;
+    line-height: 1;
+}
+
+.adaptation-letter {
+    display: inline-block;
+    animation: adaptation-bounce 1.8s ease-in-out infinite;
+    animation-delay: var(--delay);
+    will-change: transform;
+}
+
+@keyframes adaptation-bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-0.35em);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .adaptation-letter {
+        animation: none;
+        transform: none;
+    }
+}
