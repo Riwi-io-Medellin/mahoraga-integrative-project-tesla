@@ -19,6 +19,42 @@
     visibility: visible;
 }
 
+.login-loader {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 20000;
+}
+
+.login-loader.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.login-loader__logo {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    animation: login-spin 1.4s linear infinite;
+}
+
+@keyframes login-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-loader__logo {
+        animation: none;
+    }
+}
+
 .modal-overlay {
     position: absolute;
     top: 0;

@@ -18,6 +18,7 @@ export function initAuthModal() {
     const openRegisterBtn = document.getElementById('openRegisterBtn');
     const modalClose = document.getElementById('modalClose');
     const modalOverlay = document.getElementById('modalOverlay');
+    const loginLoader = document.getElementById('loginLoader');
     const switchToRegister = document.getElementById('switchToRegister');
     const switchToLogin = document.getElementById('switchToLogin');
     const loginForm = document.getElementById('loginForm');
@@ -64,6 +65,13 @@ export function initAuthModal() {
                 logoLogin.style.transform = 'scale(1)';
             }, 300);
         }
+    }
+
+    function showLoginLoader() {
+        if (!loginLoader) return;
+        loginLoader.classList.add('active');
+        loginLoader.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
     }
 
     if (openLoginBtn) {
@@ -224,8 +232,12 @@ export function initAuthModal() {
 
             // redirect to dashboard
             setTimeout(() => {
-                window.location.href = './pages/dashboard.html'; // Cambia por tu página real
-            }, 1500);
+                showLoginLoader();
+                authModal.classList.remove('active');
+                setTimeout(() => {
+                    window.location.href = './pages/dashboard.html'; // Cambia por tu página real
+                }, 900);
+            }, 300);
 
         } catch (error) {
             console.error(error);

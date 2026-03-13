@@ -64,6 +64,14 @@ document.addEventListener('touchmove', (event) => {
 updateGlowTarget(targetX, targetY);
 
 document.addEventListener('DOMContentLoaded', () => {
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        splash.classList.add('is-visible');
+        window.setTimeout(() => {
+            splash.classList.add('is-hidden');
+        }, 2200);
+    }
+
     if (redirectLoggedInUser()) {
         return;
     }
