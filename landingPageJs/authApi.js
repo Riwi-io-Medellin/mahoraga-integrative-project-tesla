@@ -61,3 +61,17 @@ export async function loginUser(login, password) {
 
   return await response.json();
 }
+
+// Obtiene todos los usuarios para resolver id_user si el login no lo trae.
+export async function getUsers() {
+  const response = await fetch(USERS_API_URL, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Error fetching users');
+  }
+
+  return await response.json();
+}

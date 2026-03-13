@@ -1,4 +1,4 @@
-import { createUser, UserCreateDTO, loginUser } from './authApi.js'
+import { createUser, UserCreateDTO, loginUser, getUsers } from './authApi.js'
 import {
     validateUsername,
     validatePassword,
@@ -212,6 +212,30 @@ export function initAuthModal() {
             const { isValid, user } = await loginUser(usernameOrEmail, password);
             if (!isValid || !user) {
                 showAlert(loginForm, 'Credenciales invalidas', 'error');
+                return;
+            }
+
+            if (!user.id_user) {
+                try {
+                    const users = await getUsers();
+                    const lowerId = usernameOrEmail.toLowerCase();
+                    const matched = Array.isArray(users)
+                      ? users.find((entry) =>
+                          String(entry?.email || '').toLowerCase() === lowerId ||
+                          String(entry?.user_name || '').toLowerCase() === lowerId
+                        )
+                      : null;
+
+                    if (matched?.id_user) {
+                        user.id_user = matched.id_user;
+                    }
+                } catch (innerError) {
+                    console.error('No se pudo resolver id_user:', innerError);
+                }
+            }
+
+            if (!user.id_user) {
+                showAlert(loginForm, 'No se pudo resolver el id_user de la cuenta.', 'error');
                 return;
             }
 

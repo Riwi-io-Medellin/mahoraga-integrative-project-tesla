@@ -9,12 +9,12 @@ import {
   saveInterviewContext,
   saveInterviewSession,
 } from "./services/interviewService.js";
-import { buildN8nSessionPayload, sendN8nSessionPayload } from "./services/n8nFeedbackService.js";
 import { getN8nExtractionSnapshot, sendN8nAnswer, buildN8nAnswerPayload, ensureInterviewSessionId } from "./services/n8nBridge.js";
 import {
   getInterviewLanguageName,
   getInterviewLanguageOptions,
   getInterviewLanguagePreference,
+  getLoggedInUser,
   requireLoggedInUser,
   setInterviewLanguagePreference,
 } from "./services/sessionService.js";
@@ -154,7 +154,7 @@ function bindInterviewActions(session, context) {
   const nextButton = document.getElementById("nextQuestion");
   const answerInput = document.getElementById("answerInput");
 
-  submitButton?.addEventListener("click", () => {
+  submitButton?.addEventListener("click", async () => {
     const answer = answerInput.value.trim();
 
     if (!answer) {
@@ -162,14 +162,10 @@ function bindInterviewActions(session, context) {
       return;
     }
 
-    const currentQuestion = session.questions[session.currentIndex];
-    session.answers[session.currentIndex] = {
-      questionId: currentQuestion.id_question,
-      answer,
-    };
-
-    saveInterviewSession(session);
-    renderPendingReview(session);
+    const submitted = await handleTextSubmission({ session, context, answer });
+    if (!submitted) {
+      return;
+    }
 
     submitButton.hidden = true;
     nextButton.hidden = false;
@@ -190,6 +186,237 @@ function bindInterviewActions(session, context) {
 
     renderInterviewSummary(session);
   });
+
+  initVoiceRecorder({ session, context });
+}
+
+async function handleTextSubmission({ session, context, answer }) {
+  const submitButton = document.getElementById("submitAnswer");
+  const nextButton = document.getElementById("nextQuestion");
+  const answerInput = document.getElementById("answerInput");
+
+  setSubmissionState({ busy: true });
+  submitButton?.setAttribute("disabled", "true");
+  nextButton?.setAttribute("disabled", "true");
+  answerInput?.setAttribute("disabled", "true");
+
+  try {
+    const response = await submitToN8n({
+      session,
+      context,
+      answerText: answer,
+      audioBlob: null,
+    });
+
+    const currentQuestion = session.questions[session.currentIndex];
+    const resolvedText = response?.texto ?? answer;
+
+    session.answers[session.currentIndex] = {
+      questionId: currentQuestion.id_question,
+      answer: resolvedText,
+      score: response?.puntaje ?? null,
+      reason: response?.razon ?? null,
+    };
+
+    saveInterviewSession(session);
+    renderPendingReview(session, response);
+    const voiceButton = document.getElementById("voiceRecordButton");
+    if (voiceButton) voiceButton.disabled = true;
+    return true;
+  } catch (error) {
+    renderErrorState(error?.message || "No se pudo enviar la respuesta.");
+    answerInput?.removeAttribute("disabled");
+    return false;
+  } finally {
+    setSubmissionState({ busy: false });
+    submitButton?.removeAttribute("disabled");
+    nextButton?.removeAttribute("disabled");
+  }
+}
+
+async function handleAudioSubmission({ session, context, audioBlob }) {
+  if (!audioBlob) return false;
+
+  const submitButton = document.getElementById("submitAnswer");
+  const nextButton = document.getElementById("nextQuestion");
+  const answerInput = document.getElementById("answerInput");
+  const voiceStatus = document.getElementById("voiceStatus");
+
+  setSubmissionState({ busy: true });
+  submitButton?.setAttribute("disabled", "true");
+  nextButton?.setAttribute("disabled", "true");
+  answerInput?.setAttribute("disabled", "true");
+
+  if (voiceStatus) {
+    voiceStatus.textContent = "Procesando audio...";
+  }
+
+  try {
+    const response = await submitToN8n({
+      session,
+      context,
+      answerText: answerInput?.value?.trim() || "",
+      audioBlob,
+    });
+
+    const currentQuestion = session.questions[session.currentIndex];
+    const resolvedText = response?.texto || answerInput?.value?.trim() || "";
+
+    if (answerInput) {
+      answerInput.value = resolvedText;
+      answerInput.disabled = true;
+    }
+
+    session.answers[session.currentIndex] = {
+      questionId: currentQuestion.id_question,
+      answer: resolvedText,
+      score: response?.puntaje ?? null,
+      reason: response?.razon ?? null,
+    };
+
+    saveInterviewSession(session);
+    renderPendingReview(session, response);
+
+    const submitAnswer = document.getElementById("submitAnswer");
+    const nextQuestion = document.getElementById("nextQuestion");
+    const voiceButton = document.getElementById("voiceRecordButton");
+    if (voiceButton) voiceButton.disabled = true;
+    if (submitAnswer && nextQuestion) {
+      submitAnswer.hidden = true;
+      nextQuestion.hidden = false;
+    }
+
+    return true;
+  } catch (error) {
+    renderErrorState(error?.message || "No se pudo transcribir el audio.");
+    if (answerInput) answerInput.disabled = false;
+    return false;
+  } finally {
+    setSubmissionState({ busy: false });
+    submitButton?.removeAttribute("disabled");
+    nextButton?.removeAttribute("disabled");
+    if (voiceStatus) {
+      voiceStatus.textContent = "Click para grabar tu respuesta";
+    }
+  }
+}
+
+async function submitToN8n({ session, context, answerText, audioBlob }) {
+  const currentQuestion = session.questions[session.currentIndex];
+  const storedUser = getLoggedInUser();
+  const fallbackUser = storedUser || {
+    id_user: context?.idUser ?? context?.id_user ?? null,
+  };
+  const ensured = await ensureInterviewSessionId({ context, user: fallbackUser });
+  const id_session =
+    ensured?.id_session ||
+    context?.sessionId ||
+    context?.id_session ||
+    session?.sessionId ||
+    null;
+  const id_question_instance =
+    currentQuestion?.id_question_instance ??
+    session?.questionInstances?.[session.currentIndex]?.id_question_instance ??
+    session?.questionInstances?.[currentQuestion?.id_question] ??
+    session.currentIndex + 1;
+  const missing = [];
+  if (!id_session) missing.push("id_session");
+  if (!fallbackUser?.id_user) missing.push("id_user");
+  if (!currentQuestion?.id_question) missing.push("id_question");
+  if (!(session.currentIndex + 1)) missing.push("order_num");
+  if (missing.length) {
+    throw new Error(`Faltan campos obligatorios: ${missing.join(", ")}`);
+  }
+
+  const payload = buildN8nAnswerPayload({
+    id_session,
+    id_question_instance,
+    id_user: fallbackUser?.id_user ?? null,
+    order_num: session.currentIndex + 1,
+    id_question: currentQuestion?.id_question ?? null,
+    pregunta: currentQuestion?.question_text ?? "",
+    texto: answerText || "",
+    audio: null,
+  });
+
+  return await sendN8nAnswer({ payload, audioBlob });
+}
+
+function setSubmissionState({ busy }) {
+  const voiceButton = document.getElementById("voiceRecordButton");
+  if (voiceButton) {
+    voiceButton.classList.toggle("is-busy", Boolean(busy));
+    voiceButton.disabled = Boolean(busy);
+  }
+}
+
+function initVoiceRecorder({ session, context }) {
+  const voiceButton = document.getElementById("voiceRecordButton");
+  const voiceStatus = document.getElementById("voiceStatus");
+
+  if (!voiceButton || !voiceStatus) return;
+
+  const hasSupport = Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+  if (!hasSupport) {
+    voiceButton.disabled = true;
+    voiceStatus.textContent = "Grabación de audio no disponible en este navegador.";
+    return;
+  }
+
+  let mediaRecorder = null;
+  let chunks = [];
+  let isRecording = false;
+
+  const setVoiceUi = (state) => {
+    if (state === "recording") {
+      voiceButton.classList.add("is-recording");
+      voiceStatus.textContent = "Grabando... vuelve a presionar para detener";
+    } else if (state === "processing") {
+      voiceButton.classList.remove("is-recording");
+      voiceButton.classList.add("is-busy");
+      voiceStatus.textContent = "Procesando audio...";
+    } else {
+      voiceButton.classList.remove("is-recording", "is-busy");
+      voiceStatus.textContent = "Click para grabar tu respuesta";
+    }
+  };
+
+  voiceButton.addEventListener("click", async () => {
+    if (isRecording) {
+      mediaRecorder?.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.addEventListener("dataavailable", (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      });
+
+      mediaRecorder.addEventListener("stop", async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        isRecording = false;
+        setVoiceUi("processing");
+
+        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        await handleAudioSubmission({ session, context, audioBlob: blob });
+
+        setVoiceUi("idle");
+      });
+
+      isRecording = true;
+      setVoiceUi("recording");
+      mediaRecorder.start();
+    } catch (error) {
+      renderErrorState("No se pudo acceder al micrófono.");
+      setVoiceUi("idle");
+    }
+  });
 }
 
 function renderCurrentQuestion(session, context) {
@@ -203,6 +430,8 @@ function renderCurrentQuestion(session, context) {
   const answerInput = document.getElementById("answerInput");
   const submitButton = document.getElementById("submitAnswer");
   const nextButton = document.getElementById("nextQuestion");
+  const voiceButton = document.getElementById("voiceRecordButton");
+  const voiceStatus = document.getElementById("voiceStatus");
 
   document.getElementById("questionText").textContent = question.question_text;
   document.getElementById("questionLevel").textContent = mapDifficultyLabel(context.difficulty);
@@ -221,6 +450,14 @@ function renderCurrentQuestion(session, context) {
     renderPendingReview(session);
   } else {
     resetFeedback();
+  }
+
+  if (voiceButton) {
+    voiceButton.disabled = Boolean(existingAnswer);
+    voiceButton.classList.remove("is-recording", "is-busy");
+  }
+  if (voiceStatus) {
+    voiceStatus.textContent = existingAnswer ? "Respuesta guardada." : "Click para grabar tu respuesta";
   }
 }
 
@@ -244,7 +481,12 @@ function renderPendingReview(session) {
   document.getElementById("feedbackScore").textContent = String(session.answers.filter(Boolean).length);
   document.getElementById("feedbackLevel").textContent = "En espera";
   document.getElementById("feedbackText").textContent =
-    "La respues ara al enviar toda la entrevista.";
+    "La respuesta se guardo. El feedback general se genera al finalizar la entrevista.";
+}
+
+function renderErrorState(message) {
+  document.getElementById("feedbackBadge").textContent = "Error";
+  document.getElementById("feedbackText").textContent = message;
 }
 
 async function renderInterviewSummary(session, context) {
@@ -264,29 +506,27 @@ async function renderInterviewSummary(session, context) {
     const id_session = ensured?.id_session || snapshot?.context?.id_session;
 
     if (id_session) {
-      let lastResponse = null;
-      for (const answer of snapshot.answers) {
-        const payload = buildN8nAnswerPayload({
-          id_session,
-          id_question_instance: null,
-          id_user: snapshot?.user?.id_user || null,
-          order_num: answer.order_num,
-          id_question: answer.id_question,
-          texto: answer.answer,
-          audio: null,
-        });
+      const respuestas = session.questions.map((question, index) => {
+        const entry = session.answers[index] || {};
+        return {
+          pregunta: question?.question_text ?? "",
+          respuesta: entry.answer ?? "",
+          puntaje: entry.score ?? entry.puntaje ?? 0,
+          razon: entry.reason ?? entry.razon ?? "",
+        };
+      });
 
-        // Envia todas las respuestas; la ultima deberia traer el feedback final.
-        lastResponse = await sendN8nAnswer({ payload });
-      }
+      const payload = {
+        id_session,
+        id_user: snapshot?.user?.id_user || null,
+        is_final: true,
+        respuestas,
+      };
 
-      if (lastResponse?.feedback || lastResponse?.summary) {
-        const feedbackText = lastResponse.feedback || lastResponse?.summary?.feedback;
-        const score = lastResponse.score || lastResponse?.summary?.score;
-        const level = lastResponse.estimatedLevel || lastResponse?.summary?.estimatedLevel;
-        if (feedbackText) document.getElementById("feedbackText").textContent = feedbackText;
-        if (score !== undefined && score !== null) document.getElementById("feedbackScore").textContent = String(score);
-        if (level) document.getElementById("feedbackLevel").textContent = level;
+      const feedbackResponse = await sendN8nAnswer({ payload });
+
+      if (feedbackResponse?.feedback) {
+        document.getElementById("feedbackText").textContent = feedbackResponse.feedback;
       }
     } else {
       console.warn("No se pudo resolver id_session para n8n.");

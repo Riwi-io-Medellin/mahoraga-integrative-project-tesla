@@ -12,6 +12,10 @@ export function extractInterviewAnswers({ session, context }) {
       id_question: entry?.questionId ?? question?.id_question ?? null,
       question_text: question?.question_text ?? "",
       answer: entry?.answer ?? "",
+      pregunta: question?.question_text ?? "",
+      respuesta: entry?.answer ?? "",
+      puntaje: entry?.score ?? entry?.puntaje ?? 0,
+      razon: entry?.reason ?? entry?.razon ?? "",
     };
   });
 }
@@ -22,6 +26,7 @@ export function buildN8nAnswerPayload({
   id_user,
   order_num,
   id_question,
+  pregunta,
   texto,
   audio,
 }) {
@@ -31,6 +36,7 @@ export function buildN8nAnswerPayload({
     id_user,
     order_num,
     id_question,
+    pregunta,
     texto,
     audio,
   };
@@ -91,7 +97,7 @@ export async function sendN8nAnswer({ payload, audioBlob } = {}) {
         formData.append(key, String(value));
       }
     });
-    formData.append("audio", audioBlob);
+    formData.append("audio", audioBlob, "answer.webm");
 
     response = await fetch(`${API_BASE_URL}/voice/feedback`, {
       method: "POST",

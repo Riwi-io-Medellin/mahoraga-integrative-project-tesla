@@ -70,6 +70,24 @@
               "name": "texto",
               "value": "={{ $json.body.texto }}",
               "type": "string"
+            },
+            {
+              "id": "is_final_flag",
+              "name": "is_final",
+              "value": "={{ $json.body.is_final ?? $json.body.final ?? false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "respuestas_list",
+              "name": "respuestas",
+              "value": "={{ $json.body.respuestas ?? [] }}",
+              "type": "json"
+            },
+            {
+              "id": "pregunta_text",
+              "name": "pregunta",
+              "value": "={{ $json.body.pregunta ?? $json.body.question ?? \"\" }}",
+              "type": "string"
             }
           ]
         },
@@ -138,7 +156,7 @@
               "content": "=Eres un evaluador técnico de la Plataforma de Evaluación Técnica.\nTu trabajo es calificar la respuesta de un candidato a una pregunta técnica abierta.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Si la respuesta es correcta o parcialmente correcta → puntaje 1\n3. Si la respuesta es incorrecta, vacía o no relacionada → puntaje 0\n4. La razón debe ser máximo 1 oración en español.\n\nFORMATO DE RESPUESTA (exacto):\n{\"puntaje\": 1, \"razon\": \"El candidato explicó correctamente el concepto.\"}\n{\"puntaje\": 0, \"razon\": \"No mencionó los aspectos clave del tema.\"}"
             },
             {
-              "content": "=Pregunta: {{ $('Edit Fields').item.json.pregunta }}\n\nRespuesta del candidato: {{ $json.text ?? $('Edit Fields').item.json.texto }}"
+              "content": "=Pregunta: {{ $(\"Edit Fields\").item.json.pregunta ?? \"\" }}\n\nRespuesta del candidato: {{ $json.text ?? $(\"Edit Fields\").item.json.texto }}"
             }
           ]
         },
@@ -165,53 +183,11 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT\n  qi.order_num,\n  qt.question_text   AS pregunta,\n  qa.answer          AS respuesta,\n  qa.score           AS puntaje,\n  qa.feedback        AS razon\nFROM question_answered qa\nJOIN question_instance qi\n  ON qa.id_question_instance = qi.id_question_instance\nJOIN question_translation qt\n  ON qi.id_question = qt.id_question\nWHERE qi.id_session = {{ $('Edit Fields').item.json.id_session }}\nORDER BY qi.order_num ASC;",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        672,
-        352
-      ],
-      "id": "9d24ae63-aebd-449e-a984-4c86ca06a51f",
-      "name": "Execute a SQL query",
-      "credentials": {
-        "postgres": {
-          "id": "xNLXXhuwHFz5Iz9d",
-          "name": "base de datos"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "audio",
-        "input": "={{ $('Message feedback').item.json.message.content }}",
-        "voice": "nova",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.1,
-      "position": [
-        1200,
-        352
-      ],
-      "id": "42a8b6e0-faa6-4ef1-b954-0561bbdeb4a1",
-      "name": "Generate audio",
-      "credentials": {
-        "openAiApi": {
-          "id": "bUTj6bnJhTPKQvMK",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "respondWith": "binary",
+        "respondWith": "json",
         "options": {
           "responseCode": 200
-        }
+        },
+        "responseBody": "={{ (() => { try { return JSON.parse($(\"Message feedback\").item.json.message.content); } catch (e) { return { feedback: $(\"Message feedback\").item.json.message.content }; } })() }}"
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
@@ -220,7 +196,7 @@
         352
       ],
       "id": "5b87e556-ef88-42fc-9751-0ff9e1b175ba",
-      "name": "Respond to Webhook"
+      "name": "Respond to Webhook - feedback"
     },
     {
       "parameters": {
@@ -240,30 +216,11 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO question_answered (\n  id_question_instance,\n  id_user,\n  id_answer_option,\n  answer,\n  score,\n  feedback,\n  is_transcription_valid,\n  transcription_service,\n  answered_at\n) VALUES (\n  {{ $('Edit Fields').item.json.id_question_instance }},\n  {{ $('Edit Fields').item.json.id_user }},\n  NULL,\n  '{{ ($json.text ?? $('Edit Fields').item.json.texto) ? ($json.text ?? $('Edit Fields').item.json.texto).replace(/'/g, \"''\") : '' }}',\n  {{\n  $('Parse model output').item.json.puntaje\n  }},\n  '{{ ($('Parse model output').item.json.razon || '').replace(/'/g, \"''\") }}',\n  {{ ($json.text && $json.text.trim().length > 0) ? true : false }},\n  'whisper-1',\n  NOW()\n);",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        64,
-        704
-      ],
-      "id": "18d5a6bf-8e72-4fe6-87be-939723bf4840",
-      "name": "Execute a SQL query1",
-      "credentials": {
-        "postgres": {
-          "id": "iAq01FfFEhzoQlYe",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"continuar\": true\n}",
-        "options": {}
+        "responseBody": "={{ { \"puntaje\": $(\"Parse model output\").item.json.puntaje, \"razon\": $(\"Parse model output\").item.json.razon, \"texto\": ($json.text ?? $(\"Edit Fields\").item.json.texto), \"continuar\": true } }}",
+        "options": {
+          "responseCode": 200
+        }
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
@@ -272,7 +229,7 @@
         704
       ],
       "id": "4735407c-cd6d-467d-82d2-2ebf597f1da9",
-      "name": "Respond to Webhook2"
+      "name": "Respond to Webhook - score"
     },
     {
       "parameters": {
@@ -359,39 +316,6 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "f6a02a37-83da-4852-b340-908bccb1e6dd",
-              "leftValue": "={{ $('Count answers').item.json.count }}",
-              "rightValue": 5,
-              "operator": {
-                "type": "number",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        544,
-        704
-      ],
-      "id": "a7f9a636-6197-4bb3-abc6-48f588900597",
-      "name": "If - 5 question respond"
-    },
-    {
-      "parameters": {
         "modelId": {
           "__rl": true,
           "value": "gpt-4o-mini",
@@ -401,11 +325,11 @@
         "responses": {
           "values": [
             {
-              "content": "=Resultados de la sesión:\n{{ JSON.stringify($input.all().map(i => i.json)) }}"
+              "role": "system",
+              "content": "Eres NOVA, asistente de la Plataforma de Evaluación Técnica.\nGeneras feedback detallado y útil para candidatos al finalizar su prueba.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Calcula el puntaje final X/5 sumando los puntajes (0/1) en \"respuestas\".\n3. Incluye fortalezas, debilidades y recomendaciones concretas.\n4. Usa un tono cercano, claro y profesional.\n\nFORMATO EXACTO:\n{\n  \"puntaje_final\": 3,\n  \"fortalezas\": [\"...\"],\n  \"debilidades\": [\"...\"],\n  \"recomendaciones\": [\"...\"],\n  \"feedback\": \"Texto corto y motivador.\"\n}"
             },
             {
-              "role": "system",
-              "content": "Eres NOVA, asistente de voz de la Plataforma de Evaluación Técnica.\nGeneras feedback motivador y útil para candidatos al finalizar su prueba.\n\nREGLAS:\n1. Máximo 4 oraciones cortas (el texto se convertirá a voz).\n2. Menciona el puntaje final X/5 de forma positiva.\n3. Indica en qué tema(s) debe reforzar, siendo específico.\n4. Termina con una frase motivadora.\n5. Tono: cercano, claro y profesional.\n6. Idioma: español."
+              "content": "=Resultados de la sesión (respuestas):\n{{ JSON.stringify($(\"Edit Fields\").item.json.respuestas ?? []) }}"
             }
           ]
         },
@@ -442,17 +366,7 @@
           "conditions": [
             {
               "id": "c1d9c9d0-2b16-4f2c-9f05-efc6d0a0b101",
-              "leftValue": "={{ $('Edit Fields').item.json.id_session }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "0f6f0f41-7a42-4d5f-94e8-2c3b6bb4d3e4",
-              "leftValue": "={{ $('Edit Fields').item.json.id_question_instance }}",
+              "leftValue": "={{ String($('Edit Fields').item.json.id_session ?? '') }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -462,7 +376,7 @@
             },
             {
               "id": "c60c0f4b-86bd-4f7c-85c8-6739d2b9a1f5",
-              "leftValue": "={{ $('Edit Fields').item.json.id_user }}",
+              "leftValue": "={{ String($('Edit Fields').item.json.id_user ?? '') }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -472,7 +386,7 @@
             },
             {
               "id": "a6a0f3f3-2c94-4015-9a94-3a7cc7e7d62c",
-              "leftValue": "={{ $('Edit Fields').item.json.order_num }}",
+              "leftValue": "={{ String($('Edit Fields').item.json.order_num ?? '') }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -482,7 +396,7 @@
             },
             {
               "id": "b5f4d6b3-7cda-4c57-a7ef-0f6c0c4b2d78",
-              "leftValue": "={{ $('Edit Fields').item.json.id_question }}",
+              "leftValue": "={{ String($('Edit Fields').item.json.id_question ?? '') }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -506,6 +420,40 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "is_final_condition",
+              "leftValue": "={{ String($(\"Edit Fields\").item.json.is_final ?? \"\").toLowerCase() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1320,
+        224
+      ],
+      "id": "if-final-feedback",
+      "name": "If - final feedback"
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "{\n  \"error\": \"missing_required_fields\",\n  \"mensaje\": \"Faltan campos obligatorios en la solicitud.\"\n}",
         "options": {}
@@ -518,27 +466,6 @@
       ],
       "id": "a3c1eb94-9371-46b7-b285-1c61030c720c",
       "name": "RTW - missing required fields"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT COUNT(DISTINCT qi.order_num)::int AS count\nFROM question_answered qa\nJOIN question_instance qi\n  ON qa.id_question_instance = qi.id_question_instance\nWHERE qi.id_session = {{ $('Edit Fields').item.json.id_session }};",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        320,
-        704
-      ],
-      "id": "56a02d98-8b7f-4032-adb0-c2034765fa78",
-      "name": "Count answers",
-      "credentials": {
-        "postgres": {
-          "id": "iAq01FfFEhzoQlYe",
-          "name": "Postgres account"
-        }
-      }
     },
     {
       "parameters": {
@@ -573,48 +500,6 @@
       ],
       "id": "3d1b300e-fc39-4b6f-9628-c46d694f913a",
       "name": "If - transcription failed"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "CREATE TABLE IF NOT EXISTS voice_assistant_error_log (\n  id SERIAL PRIMARY KEY,\n  id_session BIGINT,\n  id_question_instance BIGINT,\n  id_user BIGINT,\n  order_num INT,\n  id_question BIGINT,\n  error_type TEXT NOT NULL,\n  error_message TEXT,\n  raw_payload TEXT,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -144,
-        96
-      ],
-      "id": "8b9bbfa9-3973-43f7-9c29-8d5cec734cce",
-      "name": "Ensure error log table",
-      "credentials": {
-        "postgres": {
-          "id": "iAq01FfFEhzoQlYe",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO voice_assistant_error_log (\n  id_session,\n  id_question_instance,\n  id_user,\n  order_num,\n  id_question,\n  error_type,\n  error_message,\n  raw_payload\n) VALUES (\n  {{ $('Edit Fields').item.json.id_session }},\n  {{ $('Edit Fields').item.json.id_question_instance }},\n  {{ $('Edit Fields').item.json.id_user }},\n  {{ $('Edit Fields').item.json.order_num }},\n  {{ $('Edit Fields').item.json.id_question }},\n  'transcription_failed_or_timeout',\n  '{{ ($json.error ? JSON.stringify($json.error) : '').replace(/'/g, \"''\") }}',\n  '{{ JSON.stringify($json).replace(/'/g, \"''\") }}'\n);",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        144,
-        96
-      ],
-      "id": "55d2f084-e31a-4b23-b56f-af80fddb834c",
-      "name": "Log transcription error",
-      "credentials": {
-        "postgres": {
-          "id": "iAq01FfFEhzoQlYe",
-          "name": "Postgres account"
-        }
-      }
     },
     {
       "parameters": {
@@ -707,39 +592,6 @@
         ]
       ]
     },
-    "Execute a SQL query": {
-      "main": [
-        [
-          {
-            "node": "Message feedback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Generate audio": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute a SQL query1": {
-      "main": [
-        [
-          {
-            "node": "Count answers",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "If - is a voice record": {
       "main": [
         [
@@ -776,29 +628,11 @@
         ]
       ]
     },
-    "If - 5 question respond": {
-      "main": [
-        [
-          {
-            "node": "Execute a SQL query",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Respond to Webhook2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Message feedback": {
       "main": [
         [
           {
-            "node": "Generate audio",
+            "node": "Respond to Webhook - feedback",
             "type": "main",
             "index": 0
           }
@@ -816,7 +650,7 @@
         ],
         [
           {
-            "node": "If - is a voice record",
+            "node": "If - final feedback",
             "type": "main",
             "index": 0
           }
@@ -827,7 +661,7 @@
       "main": [
         [
           {
-            "node": "Ensure error log table",
+            "node": "RTW - transcription failed",
             "type": "main",
             "index": 0
           }
@@ -841,44 +675,29 @@
         ]
       ]
     },
-    "Ensure error log table": {
-      "main": [
-        [
-          {
-            "node": "Log transcription error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log transcription error": {
-      "main": [
-        [
-          {
-            "node": "RTW - transcription failed",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Count answers": {
-      "main": [
-        [
-          {
-            "node": "If - 5 question respond",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Parse model output": {
       "main": [
         [
           {
-            "node": "Execute a SQL query1",
+            "node": "Respond to Webhook - score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - final feedback": {
+      "main": [
+        [
+          {
+            "node": "Message feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - is a voice record",
             "type": "main",
             "index": 0
           }

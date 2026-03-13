@@ -130,10 +130,13 @@
                     </div>
                     
                     <div class="chat-input-area">
-                        <input 
-                            type="text" 
-                            id="chatInput" 
-                            class="chat-input" 
+                        <button class="chat-mic-btn" id="chatMicBtn" type="button" aria-label="Grabar respuesta por voz">
+                            <i class="bi bi-mic"></i>
+                        </button>
+                        <input
+                            type="text"
+                            id="chatInput"
+                            class="chat-input"
                             placeholder="Type your answer..."
                             data-i18n-placeholder="chat.placeholder"
                             autocomplete="off">
@@ -144,6 +147,7 @@
                                 style="width:28px;height:28px;">
                             </lord-icon>
                         </button>
+                        <span class="chat-mic-status" id="chatMicStatus">Click para grabar tu respuesta</span>
                     </div>
                 </div>
             </div>
