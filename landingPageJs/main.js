@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         splash.classList.add('is-visible');
         window.setTimeout(() => {
             splash.classList.add('is-hidden');
-        }, 2200);
+        }, 1200);
     }
 
     if (redirectLoggedInUser()) {

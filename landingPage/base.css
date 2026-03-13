@@ -135,6 +135,24 @@ hr {
     margin: 0;
 }
 
+.splash-progress {
+    width: min(320px, 70vw);
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+    margin-top: 6px;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.18);
+}
+
+.splash-progress-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ffffff, #b6f0ff, #ffffff);
+    animation: splash-progress 2.4s ease-in-out infinite;
+}
+
 @keyframes splash-spin {
     to {
         transform: rotate(360deg);
@@ -153,10 +171,30 @@ hr {
     }
 }
 
+@keyframes splash-progress {
+    0% {
+        width: 0%;
+        transform: translateX(-8%);
+    }
+    50% {
+        width: 100%;
+        transform: translateX(0%);
+    }
+    100% {
+        width: 100%;
+        transform: translateX(18%);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .splash-logo,
-    .splash-text {
+    .splash-text,
+    .splash-progress-bar {
         animation: none;
+    }
+    .splash-progress-bar {
+        width: 60%;
+        transform: none;
     }
 }
 .joinAdaptation {
@@ -176,6 +214,48 @@ hr {
     animation-delay: var(--delay);
     will-change: transform;
 }
+.matchIQ{
+    display: flex;
+    justify-content: center;
+    margin: 6rem;
+    position: relative;
+}
+
+.matchIQ img{
+    max-width: 300px;
+    height: auto;
+    filter: brightness(200);
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.matchIQ-tooltip{
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translate(-50%, -6px);
+    opacity: 0;
+    pointer-events: none;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.88);
+    color: #ffffff;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.matchIQ:hover .matchIQ-tooltip{
+    opacity: 1;
+    transform: translate(-50%, -18px);
+}
+
+.matchIQ:hover img{
+    transform: translateY(-4px);
+    filter: brightness(220);
+}
 
 @keyframes adaptation-bounce {
     0%,
@@ -191,5 +271,9 @@ hr {
     .adaptation-letter {
         animation: none;
         transform: none;
+    }
+    .matchIQ img,
+    .matchIQ-tooltip {
+        transition: none;
     }
 }
