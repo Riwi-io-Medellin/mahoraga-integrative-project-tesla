@@ -130,7 +130,7 @@ export function getInterviewLanguageName(idLanguage) {
 function normalizeLoggedInUser(user) {
   return {
     ...user,
-    id_user: Number(user?.id_user || 0) || null,
+    id_user: user?.id_user ? String(user.id_user) : null,
     id_level: Number(user?.id_level || 1),
     id_language: Number(user?.id_language || 1),
   };

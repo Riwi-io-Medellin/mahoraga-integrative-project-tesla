@@ -5,7 +5,8 @@ import {
   updateQuestion as updateQuestionRepo,
   getQuestionByLevel as getQuestionByLevelRepo,
   newInterviewQuestion as newInterviewQuestionRepo,
-  newQuestionAnswered as newQuestionAnsweredRepo
+  newQuestionAnswered as newQuestionAnsweredRepo,
+  createQuestionInstances as createQuestionInstancesRepo
 } from './question.repository.js'
 
 export const consultationQuestion = async () => consultationQuestionRepo()
@@ -20,10 +21,14 @@ export const updateQuestion = async (id_question, id_topic, id_level, translatio
 export const getQuestionByLevel = async (id_level, id_topic, id_language) =>
   getQuestionByLevelRepo(id_level, id_topic, id_language)
 
-export const newInterviewQuestion = async (id_session, id_question) =>{
-  return newInterviewQuestionRepo(id_session, id_question)
+export const newInterviewQuestion = async (id_session, id_question, order_num) =>{
+  return newInterviewQuestionRepo(id_session, id_question, order_num)
 }
 
 export const newQuestionAnswered = async(id_user, answer, score, feedback, answered_at) => {
   return newQuestionAnsweredRepo(id_user, answer, score, feedback, answered_at)
+}
+
+export const createQuestionInstances = async (id_session, id_questions) => {
+  return createQuestionInstancesRepo(id_session, id_questions)
 }

@@ -55,15 +55,17 @@ export async function fetchInterviewQuestions(context) {
 }
 
 export async function createInterviewSession({ context, user }) {
-  if (!user?.id_user || !context?.nodeId || !context?.levelId) {
+  if (!user?.id_user || !context?.technology || !context?.levelId) {
     return null;
   }
 
   const payload = {
     id_user: user.id_user,
+    // Prefer technology so el backend resuelve el topic correcto; nodeId puede no coincidir con id_topic en DB.
+    technology: context.technology,
+    // si existiera una coincidencia directa, la enviamos también
     id_topic: context.nodeId,
     id_level: context.levelId,
-    session_status: "active",
     date_ini: new Date().toISOString(),
   };
 
@@ -88,6 +90,7 @@ export async function saveInterviewQuestionInstances({ id_session, questions }) 
 
   const payload = {
     id_session,
+    // preserve incoming order as order_num (idx+1)
     id_questions: questions.map((question) => question.id_question),
   };
 
