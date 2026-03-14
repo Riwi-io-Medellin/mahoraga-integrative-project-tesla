@@ -24,6 +24,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendBtn = document.querySelector("#chatSendBtn");
   const micBtn = document.querySelector("#chatMicBtn");
   const micStatus = document.querySelector("#chatMicStatus");
+  const chatFeedback = document.querySelector("#chatFeedback");
+  const audioModal = document.querySelector("#audioModal");
+  const audioModalClose = document.querySelector("#audioModalClose");
+  const audioRecordBtn = document.querySelector("#audioRecordBtn");
+  const audioStopBtn = document.querySelector("#audioStopBtn");
+  const audioSendBtn = document.querySelector("#audioSendBtn");
+  const audioTimer = document.querySelector("#audioTimer");
+  const audioStatus = document.querySelector("#audioStatus");
+  const audioIndicator = document.querySelector("#audioIndicator");
 
   if (!chatWorld || !roadmapWorld || !closeChatBtn || !chatMessages || !chatInput || !sendBtn) {
     return;
@@ -81,6 +90,27 @@ document.addEventListener("DOMContentLoaded", () => {
       micBtn.classList.toggle("is-busy", Boolean(busy));
     }
   }
+
+  function openAudioModal() {
+    if (!audioModal) return;
+    audioModal.hidden = false;
+  }
+
+  function closeAudioModal() {
+    if (!audioModal) return;
+    audioModal.hidden = true;
+  }
+
+  if (audioModal) {
+    audioModal.hidden = true;
+    audioModal.addEventListener("click", (event) => {
+      if (event.target === audioModal) {
+        closeAudioModal();
+      }
+    });
+  }
+
+  audioModalClose?.addEventListener("click", closeAudioModal);
 
   function buildContext(nodeDetail) {
     const user = requireLoggedInUser("../index.html");
@@ -200,32 +230,110 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("No se pudo obtener feedback detallado de n8n:", error);
     }
 
-    if (detailed?.feedback || detailed?.puntaje_final !== undefined) {
-      const scoreLabel = detailed?.puntaje_final ?? summary.score;
-      appendMessage(
-        "assistant",
-        `<strong>${t("interviewer.label")}:</strong> Resultado final: ${scoreLabel}/5.`,
-      );
-      if (Array.isArray(detailed?.fortalezas) && detailed.fortalezas.length) {
-        appendMessage("assistant", `<strong>Fortalezas:</strong> ${detailed.fortalezas.join(", ")}.`);
-      }
-      if (Array.isArray(detailed?.debilidades) && detailed.debilidades.length) {
-        appendMessage("assistant", `<strong>Debilidades:</strong> ${detailed.debilidades.join(", ")}.`);
-      }
-      if (Array.isArray(detailed?.recomendaciones) && detailed.recomendaciones.length) {
-        appendMessage("assistant", `<strong>Recomendaciones:</strong> ${detailed.recomendaciones.join(", ")}.`);
-      }
-      if (detailed?.feedback) {
-        appendMessage("assistant", detailed.feedback);
-      }
-      return;
-    }
+    renderDetailedInterviewSummary({ detailed, summary, session });
+    return;
 
     appendMessage(
       "assistant",
       `<strong>${t("interviewer.label")}:</strong> Resultado: ${summary.score} pts • ${summary.estimatedLevel}.`,
     );
     appendMessage("assistant", summary.feedback);
+  }
+
+  function renderDetailedInterviewSummary({ detailed, summary, session }) {
+    if (!chatFeedback || !chatMessages) return;
+
+    const chatContainer = document.querySelector(".chat-container");
+    if (chatContainer) {
+      chatContainer.classList.add("is-feedback");
+    }
+
+    const inputArea = document.querySelector(".chat-input-area");
+    if (inputArea) inputArea.hidden = true;
+    chatMessages.hidden = true;
+    chatFeedback.hidden = false;
+
+    const scoreLabel = detailed?.puntaje_final ?? summary?.score ?? 0;
+    const fortalezas = Array.isArray(detailed?.fortalezas) ? detailed.fortalezas : [];
+    const debilidades = Array.isArray(detailed?.debilidades) ? detailed.debilidades : [];
+    const recomendaciones = Array.isArray(detailed?.recomendaciones) ? detailed.recomendaciones : [];
+    const feedbackText = detailed?.feedback || summary?.feedback || "";
+    const preguntas = Array.isArray(detailed?.preguntas) ? detailed.preguntas : [];
+
+    const preguntasHtml = preguntas.length
+      ? preguntas
+          .map(
+            (item, index) => `
+            <div class="feedback-question">
+              <strong>${item?.pregunta || `Pregunta ${index + 1}`}</strong>
+              <div>Puntaje: ${item?.puntaje ?? 0}/1</div>
+              <div>Razón: ${item?.razon || "Sin detalle."}</div>
+              <div>${item?.descripcion || "Sin descripción adicional."}</div>
+            </div>
+          `,
+          )
+          .join("")
+      : session.questions
+          .map((question, index) => {
+            const entry = session.answers[index] || {};
+            return `
+              <div class="feedback-question">
+                <strong>${question?.question_text || `Pregunta ${index + 1}`}</strong>
+                <div>Puntaje: ${entry?.score ?? 0}/1</div>
+                <div>Razón: ${entry?.reason || "Sin detalle."}</div>
+                <div>Respuesta: ${entry?.answer || ""}</div>
+              </div>
+            `;
+          })
+          .join("");
+
+    chatFeedback.innerHTML = `
+      <h3 class="feedback-title">Feedback final de la entrevista</h3>
+      <div class="feedback-summary">
+        <div class="feedback-meta">
+          <span>Resultado final: ${scoreLabel}/100</span>
+          <span>Preguntas: ${session.questions.length}</span>
+        </div>
+        <p>${feedbackText || "No fue posible obtener feedback detallado de IA. Se muestra resumen local."}</p>
+      </div>
+      <div class="feedback-actions">
+        <button class="feedback-action-btn primary" id="feedbackRetryBtn">
+          <i class="bi bi-arrow-repeat"></i>
+          <span>Reintentar entrevista</span>
+        </button>
+        <button class="feedback-action-btn" id="feedbackBackBtn">
+          <i class="bi bi-arrow-left"></i>
+          <span>Volver al dashboard</span>
+        </button>
+      </div>
+      <div class="feedback-block">
+        <strong>Fortalezas</strong>
+        ${fortalezas.length ? `<ul class="feedback-list">${fortalezas.map((f) => `<li>${f}</li>`).join("")}</ul>` : "<p>Sin fortalezas registradas.</p>"}
+      </div>
+      <div class="feedback-block">
+        <strong>Debilidades</strong>
+        ${debilidades.length ? `<ul class="feedback-list">${debilidades.map((d) => `<li>${d}</li>`).join("")}</ul>` : "<p>Sin debilidades registradas.</p>"}
+      </div>
+      <div class="feedback-block">
+        <strong>Recomendaciones</strong>
+        ${recomendaciones.length ? `<ul class="feedback-list">${recomendaciones.map((r) => `<li>${r}</li>`).join("")}</ul>` : "<p>Sin recomendaciones registradas.</p>"}
+      </div>
+      <div class="feedback-block">
+        <strong>Detalle por pregunta</strong>
+        ${preguntasHtml}
+      </div>
+    `;
+
+    const retryBtn = document.getElementById("feedbackRetryBtn");
+    const backBtn = document.getElementById("feedbackBackBtn");
+    retryBtn?.addEventListener("click", () => {
+      clearInterviewSession();
+      window.location.reload();
+    });
+    backBtn?.addEventListener("click", () => {
+      clearInterviewSession();
+      closeChat();
+    });
   }
 
   async function sendAnswer() {
@@ -235,10 +343,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!text) return;
 
     chatInput.value = "";
-    await submitAnswer({ answerText: text, audioBlob: null });
+    await submitAnswer({ answerText: text, audioBlob: null, skipRemote: true });
   }
 
-  async function submitAnswer({ answerText, audioBlob }) {
+  async function submitAnswer({ answerText, audioBlob, skipRemote = false }) {
     if (!session) return;
 
     setChatBusy(true);
@@ -272,33 +380,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const payload = buildN8nAnswerPayload({
-        id_session,
-        id_question_instance,
-        id_user: fallbackUser?.id_user ?? null,
-        order_num: session.currentIndex + 1,
-        id_question: currentQuestion?.id_question ?? null,
-        pregunta: currentQuestion?.question_text ?? "",
-        texto: answerText || "",
-        audio: null,
-      });
+      let resolvedText = answerText || "";
 
-      const response = await sendN8nAnswer({ payload, audioBlob });
-      const resolvedText = response?.texto || answerText || "";
+      if (!skipRemote || audioBlob) {
+        const payload = buildN8nAnswerPayload({
+          id_session,
+          id_question_instance,
+          id_user: fallbackUser?.id_user ?? null,
+          order_num: session.currentIndex + 1,
+          id_question: currentQuestion?.id_question ?? null,
+          pregunta: currentQuestion?.question_text ?? "",
+          texto: answerText || "",
+          audio: null,
+          mode: audioBlob ? "transcribe" : "evaluate",
+        });
+
+        const response = await sendN8nAnswer({ payload, audioBlob });
+        resolvedText = response?.texto || answerText || "";
+      }
 
       appendMessage("user", `<strong>${t("you.label")}:</strong> ${resolvedText}`);
-      if (response?.puntaje !== undefined || response?.razon) {
-        appendMessage(
-          "assistant",
-          `<strong>${t("interviewer.label")}:</strong> Evaluación: ${response?.puntaje ?? 0}/1. ${response?.razon || ""}`,
-        );
-      }
 
       session.answers[session.currentIndex] = {
         questionId: currentQuestion.id_question,
         answer: resolvedText,
-        score: response?.puntaje ?? null,
-        reason: response?.razon ?? null,
       };
       saveInterviewSession(session);
     } catch (error) {
@@ -343,9 +448,21 @@ document.addEventListener("DOMContentLoaded", () => {
       micBtn.disabled = true;
       micStatus.textContent = "Grabación de audio no disponible en este navegador.";
     } else {
+      micBtn.addEventListener("click", () => {
+        openAudioModal();
+      });
+
       let mediaRecorder = null;
       let chunks = [];
       let isRecording = false;
+      let timerInterval = null;
+      let elapsedSeconds = 0;
+
+      const updateTimer = () => {
+        const minutes = String(Math.floor(elapsedSeconds / 60)).padStart(2, "0");
+        const seconds = String(elapsedSeconds % 60).padStart(2, "0");
+        if (audioTimer) audioTimer.textContent = `${minutes}:${seconds}`;
+      };
 
       const setMicUi = (state) => {
         if (state === "recording") {
@@ -361,7 +478,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
 
-      micBtn.addEventListener("click", async () => {
+      const startRecording = async () => {
         if (isRecording) {
           mediaRecorder?.stop();
           return;
@@ -371,6 +488,13 @@ document.addEventListener("DOMContentLoaded", () => {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           chunks = [];
           mediaRecorder = new MediaRecorder(stream);
+          elapsedSeconds = 0;
+          updateTimer();
+          if (audioIndicator) audioIndicator.classList.add("is-recording");
+          if (audioStatus) audioStatus.textContent = "Grabando...";
+          if (audioRecordBtn) audioRecordBtn.disabled = true;
+          if (audioStopBtn) audioStopBtn.disabled = false;
+          if (audioSendBtn) audioSendBtn.disabled = true;
 
           mediaRecorder.addEventListener("dataavailable", (event) => {
             if (event.data && event.data.size > 0) {
@@ -381,25 +505,46 @@ document.addEventListener("DOMContentLoaded", () => {
           mediaRecorder.addEventListener("stop", async () => {
             stream.getTracks().forEach((track) => track.stop());
             isRecording = false;
-            setMicUi("processing");
-
-            const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
-            await submitAnswer({ answerText: chatInput.value.trim(), audioBlob: blob });
-
-            setMicUi("idle");
+            if (timerInterval) clearInterval(timerInterval);
+            if (audioIndicator) audioIndicator.classList.remove("is-recording");
+            if (audioStatus) audioStatus.textContent = "Audio listo para enviar";
+            if (audioRecordBtn) audioRecordBtn.disabled = false;
+            if (audioStopBtn) audioStopBtn.disabled = true;
+            if (audioSendBtn) audioSendBtn.disabled = false;
           });
 
           isRecording = true;
-          setMicUi("recording");
           mediaRecorder.start();
+          timerInterval = setInterval(() => {
+            elapsedSeconds += 1;
+            updateTimer();
+          }, 1000);
         } catch (error) {
           appendMessage(
             "assistant",
             `<strong>${t("interviewer.label")}:</strong> No se pudo acceder al micrófono.`,
           );
-          setMicUi("idle");
+          closeAudioModal();
         }
-      });
+      };
+
+      const stopRecording = () => {
+        if (!isRecording) return;
+        mediaRecorder?.stop();
+      };
+
+      const sendRecording = async () => {
+        if (!chunks.length) return;
+        if (audioStatus) audioStatus.textContent = "Enviando audio...";
+        if (audioSendBtn) audioSendBtn.disabled = true;
+        const blob = new Blob(chunks, { type: mediaRecorder?.mimeType || "audio/webm" });
+        await submitAnswer({ answerText: chatInput.value.trim(), audioBlob: blob, skipRemote: false });
+        closeAudioModal();
+      };
+
+      audioRecordBtn?.addEventListener("click", startRecording);
+      audioStopBtn?.addEventListener("click", stopRecording);
+      audioSendBtn?.addEventListener("click", sendRecording);
     }
   }
 

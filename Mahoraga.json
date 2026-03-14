@@ -45,7 +45,7 @@
               "id": "c8a77140-216e-4b9a-9b4d-aa5238358c36",
               "name": "id_user",
               "value": "={{ $json.body.id_user }}",
-              "type": "number"
+              "type": "string"
             },
             {
               "id": "477e0502-e190-484a-b4a5-f8dd325c3396",
@@ -82,6 +82,12 @@
               "name": "respuestas",
               "value": "={{ $json.body.respuestas ?? [] }}",
               "type": "json"
+            },
+            {
+              "id": "mode_flag",
+              "name": "mode",
+              "value": "={{ $json.body.mode ?? '' }}",
+              "type": "string"
             },
             {
               "id": "pregunta_text",
@@ -153,7 +159,7 @@
           "values": [
             {
               "role": "system",
-              "content": "=Eres un evaluador técnico de la Plataforma de Evaluación Técnica.\nTu trabajo es calificar la respuesta de un candidato a una pregunta técnica abierta.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Si la respuesta es correcta o parcialmente correcta → puntaje 1\n3. Si la respuesta es incorrecta, vacía o no relacionada → puntaje 0\n4. La razón debe ser máximo 1 oración en español.\n\nFORMATO DE RESPUESTA (exacto):\n{\"puntaje\": 1, \"razon\": \"El candidato explicó correctamente el concepto.\"}\n{\"puntaje\": 0, \"razon\": \"No mencionó los aspectos clave del tema.\"}"
+              "content": "=Eres un evaluador técnico de la Plataforma de Evaluación Técnica.\nTu trabajo es calificar la respuesta de un candidato a una pregunta técnica abierta.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown ni code fences.\n2. Si la respuesta es correcta o parcialmente correcta → puntaje 1\n3. Si la respuesta es incorrecta, vacía o no relacionada → puntaje 0\n4. La razón debe ser máximo 1 oración en español.\n5. Si no puedes evaluar, responde con JSON válido: {\"puntaje\": 0, \"razon\": \"Respuesta no valida del modelo.\"}\n\nFORMATO DE RESPUESTA (exacto):\n{\"puntaje\": 1, \"razon\": \"El candidato explicó correctamente el concepto.\"}\n{\"puntaje\": 0, \"razon\": \"No mencionó los aspectos clave del tema.\"}"
             },
             {
               "content": "=Pregunta: {{ $(\"Edit Fields\").item.json.pregunta ?? \"\" }}\n\nRespuesta del candidato: {{ $json.text ?? $(\"Edit Fields\").item.json.texto }}"
@@ -326,7 +332,7 @@
           "values": [
             {
               "role": "system",
-              "content": "Eres NOVA, asistente de la Plataforma de Evaluación Técnica.\nGeneras feedback detallado y útil para candidatos al finalizar su prueba.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Calcula el puntaje final X/5 sumando los puntajes (0/1) en \"respuestas\".\n3. Incluye fortalezas, debilidades y recomendaciones concretas.\n4. Usa un tono cercano, claro y profesional.\n\nFORMATO EXACTO:\n{\n  \"puntaje_final\": 3,\n  \"fortalezas\": [\"...\"],\n  \"debilidades\": [\"...\"],\n  \"recomendaciones\": [\"...\"],\n  \"feedback\": \"Texto corto y motivador.\"\n}"
+              "content": "Eres NOVA, asistente de la Plataforma de Evaluación Técnica.\nGeneras feedback detallado y útil para candidatos al finalizar su prueba.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Calcula el puntaje final sobre 100 usando el conjunto de respuestas (0 a 100).\n3. Incluye fortalezas, debilidades y recomendaciones concretas.\n4. Para CADA pregunta, agrega una descripción breve de la calidad de la respuesta (1 oración).\n5. Usa un tono cercano, claro y profesional.\n\nFORMATO EXACTO:\n{\n  \"puntaje_final\": 78,\n  \"fortalezas\": [\"...\"],\n  \"debilidades\": [\"...\"],\n  \"recomendaciones\": [\"...\"],\n  \"feedback\": \"Texto corto y motivador.\",\n  \"preguntas\": [\n    {\n      \"pregunta\": \"...\",\n      \"puntaje\": 15,\n      \"razon\": \"...\",\n      \"descripcion\": \"...\"\n    }\n  ]\n}"
             },
             {
               "content": "=Resultados de la sesión (respuestas):\n{{ JSON.stringify($(\"Edit Fields\").item.json.respuestas ?? []) }}"
@@ -523,13 +529,13 @@
             {
               "id": "c2c4f8a1-0c8c-4a5f-8a0e-1a2b3c4d5e6f",
               "name": "puntaje",
-              "value": "={{ (() => { try { const obj = JSON.parse($('Message a model').item.json.message.content); return (obj?.puntaje ?? 0); } catch (e) { return 0; } })() }}",
+              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return (obj?.puntaje ?? 0); } catch (e) { return 0; } })() }}",
               "type": "number"
             },
             {
               "id": "a9b1c2d3-e4f5-4a6b-9c0d-1e2f3a4b5c6d",
               "name": "razon",
-              "value": "={{ (() => { try { const obj = JSON.parse($('Message a model').item.json.message.content); return (obj?.razon ?? 'Respuesta no valida del modelo.'); } catch (e) { return 'Respuesta no valida del modelo.'; } })() }}",
+              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return (obj?.razon ?? 'Respuesta no valida del modelo.'); } catch (e) { return 'Respuesta no valida del modelo.'; } })() }}",
               "type": "string"
             }
           ]
@@ -544,6 +550,57 @@
       ],
       "id": "ef4c39aa-6a88-42ac-8ed0-7cc85611cac5",
       "name": "Parse model output"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "is_transcribe_mode",
+              "leftValue": "={{ String($('Edit Fields').item.json.mode ?? '').toLowerCase() }}",
+              "rightValue": "transcribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1200,
+        224
+      ],
+      "id": "if-transcribe-mode",
+      "name": "If - transcribe mode"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"texto\": $json.text ?? $('Edit Fields').item.json.texto ?? '' , \"continuar\": true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -240,
+        112
+      ],
+      "id": "rtw-transcript",
+      "name": "Respond to Webhook - transcript"
     }
   ],
   "pinData": {},
@@ -563,7 +620,7 @@
       "main": [
         [
           {
-            "node": "If - missing required fields",
+            "node": "If - final feedback",
             "type": "main",
             "index": 0
           }
@@ -603,7 +660,7 @@
         ],
         [
           {
-            "node": "Message a model",
+            "node": "RTW - audio not readable",
             "type": "main",
             "index": 0
           }
@@ -614,14 +671,7 @@
       "main": [
         [
           {
-            "node": "RTW - audio not readable",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Message a model",
+            "node": "Respond to Webhook - transcript",
             "type": "main",
             "index": 0
           }
@@ -650,7 +700,7 @@
         ],
         [
           {
-            "node": "If - final feedback",
+            "node": "If - is a voice record",
             "type": "main",
             "index": 0
           }
@@ -668,7 +718,7 @@
         ],
         [
           {
-            "node": "If - empty text",
+            "node": "Respond to Webhook - transcript",
             "type": "main",
             "index": 0
           }
@@ -697,7 +747,25 @@
         ],
         [
           {
+            "node": "If - transcribe mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - transcribe mode": {
+      "main": [
+        [
+          {
             "node": "If - is a voice record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RTW - missing required fields",
             "type": "main",
             "index": 0
           }

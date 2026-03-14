@@ -119,12 +119,6 @@ export const getInterviewQuestions = async (req, res) => {
         limit = '5'
     } = req.query
 
-    if (!id_user) {
-        return res.status(400).json({
-            error: 'Debes enviar id_user para evitar que se repitan preguntas ya respondidas por el usuario.'
-        })
-    }
-
     try {
         const data = await getInterviewQuestionsService({
             id_level: level ? Number(level) : null,

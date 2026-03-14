@@ -149,6 +149,43 @@
                         </button>
                         <span class="chat-mic-status" id="chatMicStatus">Click para grabar tu respuesta</span>
                     </div>
+                    <div class="chat-feedback" id="chatFeedback" hidden></div>
+                </div>
+            </div>
+            <div class="audio-modal" id="audioModal" hidden>
+                <div class="audio-modal-card">
+                    <div class="audio-modal-header">
+                        <div>
+                            <p class="audio-modal-title">Captura de voz</p>
+                            <p class="audio-modal-subtitle">Graba tu respuesta con claridad. Puedes detener y enviar cuando quieras.</p>
+                        </div>
+                        <button class="audio-modal-close" id="audioModalClose" type="button" aria-label="Cerrar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div class="audio-modal-body">
+                        <div class="audio-indicator" id="audioIndicator">
+                            <div class="audio-indicator-core"></div>
+                        </div>
+                        <div class="audio-meta">
+                            <span id="audioTimer">00:00</span>
+                            <span id="audioStatus">Listo para grabar</span>
+                        </div>
+                        <div class="audio-actions">
+                            <button class="audio-action" id="audioRecordBtn" type="button">
+                                <i class="bi bi-record-circle"></i>
+                                <span>Grabar</span>
+                            </button>
+                            <button class="audio-action" id="audioStopBtn" type="button" disabled>
+                                <i class="bi bi-stop-circle"></i>
+                                <span>Detener</span>
+                            </button>
+                            <button class="audio-action primary" id="audioSendBtn" type="button" disabled>
+                                <i class="bi bi-send"></i>
+                                <span>Enviar</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- ================= FIN CHAT VIEW ================= -->

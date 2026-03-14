@@ -29,6 +29,7 @@ export function buildN8nAnswerPayload({
   pregunta,
   texto,
   audio,
+  mode,
 }) {
   return {
     id_session,
@@ -39,6 +40,7 @@ export function buildN8nAnswerPayload({
     pregunta,
     texto,
     audio,
+    mode,
   };
 }
 

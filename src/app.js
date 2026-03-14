@@ -19,6 +19,7 @@ app.use('/api/questions', routerQuestion)
 app.use('/api/users', routerUser)
 app.use('/api/profile', profileRouter)
 app.use('/api/interview', interviewRouter)
+app.use('/api/voice', voiceRouter)
 
 app.get('/', (_req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'))

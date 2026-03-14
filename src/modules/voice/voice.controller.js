@@ -6,6 +6,9 @@ function isMultipartRequest(req) {
 }
 
 function validateJsonPayload(body) {
+  if (body?.is_final === true) {
+    return []
+  }
   const missing = []
 
   if (!body?.id_session) missing.push('id_session')
