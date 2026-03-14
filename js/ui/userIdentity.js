@@ -50,7 +50,7 @@ export function initDashboardIdentity() {
     `;
   }
 
-  applyPhotoToIdentity(getStoredProfilePhoto(), presentation.initials);
+  applyPhotoToIdentity(getStoredProfilePhoto(user), presentation.initials);
   document.addEventListener("profile-photo-updated", ({ detail }) => {
     applyPhotoToIdentity(detail?.image || "", presentation.initials);
   });
@@ -66,7 +66,7 @@ export function initInterviewIdentity() {
   const presentation = getUserPresentation(user);
   setText("interviewUsername", presentation.name);
   setText("interviewUserMeta", `${presentation.levelName} • ${presentation.languageName}`);
-  applyPhotoToInterview(getStoredProfilePhoto(), presentation.initials);
+  applyPhotoToInterview(getStoredProfilePhoto(user), presentation.initials);
   document.addEventListener("profile-photo-updated", ({ detail }) => {
     applyPhotoToInterview(detail?.image || "", presentation.initials);
   });

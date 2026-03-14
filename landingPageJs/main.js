@@ -4,12 +4,14 @@ import { initSmoothScroll } from './navigation.js';
 import { initCarousel } from '../landingPageJs/carousel.js';
 import { initAuthModal } from '../landingPageJs/modal.js';
 import { redirectLoggedInUser } from '../js/services/sessionService.js';
+import { initScrollEffects } from './scrollEffects.js';
 
 initCarousel();
 
 initParallax();
 
 initSmoothScroll();
+initScrollEffects();
 
 const root = document.body;
 let targetX = window.innerWidth / 2;
@@ -62,6 +64,14 @@ document.addEventListener('touchmove', (event) => {
 updateGlowTarget(targetX, targetY);
 
 document.addEventListener('DOMContentLoaded', () => {
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        splash.classList.add('is-visible');
+        window.setTimeout(() => {
+            splash.classList.add('is-hidden');
+        }, 1200);
+    }
+
     if (redirectLoggedInUser()) {
         return;
     }

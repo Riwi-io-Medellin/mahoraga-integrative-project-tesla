@@ -13,6 +13,14 @@
 </head>
 
 <body>
+    <div class="splash-screen" id="splashScreen" aria-hidden="true">
+        <img class="splash-logo" src="./img/logo.png" alt="Mahoraga logo">
+        <p class="splash-text">Join the adaptation</p>
+        <div class="splash-progress" aria-hidden="true">
+            <div class="splash-progress-bar"></div>
+        </div>
+    </div>
+
     <img class="shine" src="./img/shine.png" alt="Decorative shine effect">
 
     <header>
@@ -174,6 +182,11 @@
                 </div>
             </div>
         </section>
+
+        <article class="matchIQ">
+            <img src="./img/iconoMatchIQ.webp" alt="">
+            <span class="matchIQ-tooltip" aria-hidden="true">Collaborator</span> 
+        </article>
             <div class="separador">
                 <img src="./img/mahoraga.png" alt="Mahoraga mascot logo" class="mahoragaLogo">
             </div>
@@ -188,29 +201,30 @@
                 </div>
                 <div class="roles-carousel" data-role-carousel>
                     <div class="roles-track" tabindex="0" aria-live="polite">
-                        <article class="role-card is-active" data-role-card>
+                        <article class="role-card role-card--photo role-card--totyy is-active" data-role-card>
                             <p class="role-tag">Role</p>
-                            <h3 class="role-title">Dev Frontend</h3>
+                            <h3 class="role-title">Full Stack</h3>
                         </article>
-                        <article class="role-card" data-role-card>
+                        <article class="role-card role-card--photo role-card--tomyy" data-role-card>
+                            <p class="role-tag">Role</p>
+                            <h3 class="role-title">Dev Frontend - UX/UI</h3>
+                        </article>
+                        <article class="role-card role-card--photo role-card--juaaan" data-role-card>
                             <p class="role-tag">Role</p>
                             <h3 class="role-title">Dev Backend</h3>
                         </article>
-                        <article class="role-card" data-role-card>
+                        <article class="role-card role-card--photo role-card--josee" data-role-card>
                             <p class="role-tag">Role</p>
-                            <h3 class="role-title">Dev Fullstack</h3>
+                            <h3 class="role-title">Dev AI Automation</h3>
                         </article>
-                        <article class="role-card" data-role-card>
-                            <p class="role-tag">Role</p>
-                            <h3 class="role-title">Dev Mobile</h3>
-                        </article>
-                        <article class="role-card" data-role-card>
+                        <article class="role-card role-card--photo role-card--diegoo" data-role-card>
                             <p class="role-tag">Role</p>
                             <h3 class="role-title">Dev Data</h3>
                         </article>
-                        <article class="role-card" data-role-card>
+                        <article class="role-card role-card--photo role-card--danyy" data-role-card>
                             <p class="role-tag">Role</p>
-                            <h3 class="role-title">Dev DevOps</h3>
+                            <h3 class="role-title">Dev Frontend</h3>
+                            <p class="role-tag">Daniel Stiven Perez Bustamante</p>
                         </article>
                     </div>
 
@@ -231,6 +245,21 @@
                         </button>
                     </div>
                 </div>
+            </section>
+
+            <section class="joinAdaptation">
+                <h2 class="adaptation-title" aria-label="Adaptation">
+                    <span class="adaptation-letter" style="--delay: 0s;">A</span>
+                    <span class="adaptation-letter" style="--delay: 0.08s;">d</span>
+                    <span class="adaptation-letter" style="--delay: 0.16s;">a</span>
+                    <span class="adaptation-letter" style="--delay: 0.24s;">p</span>
+                    <span class="adaptation-letter" style="--delay: 0.32s;">t</span>
+                    <span class="adaptation-letter" style="--delay: 0.40s;">a</span>
+                    <span class="adaptation-letter" style="--delay: 0.48s;">t</span>
+                    <span class="adaptation-letter" style="--delay: 0.56s;">i</span>
+                    <span class="adaptation-letter" style="--delay: 0.64s;">o</span>
+                    <span class="adaptation-letter" style="--delay: 0.72s;">n</span>
+                </h2>
             </section>
 <!-- 
            jj -->
@@ -427,6 +456,10 @@
         </div>
     </div>
 
+
+    <div class="login-loader" id="loginLoader" aria-hidden="true">
+        <img class="login-loader__logo" src="./img/logo.png" alt="Loading" role="status" aria-label="Loading">
+    </div>
 
     
     <script src="https://cdn.lordicon.com/lordicon.js"></script>
