@@ -5,6 +5,7 @@ import { renderRoadmap } from "./ui/roadmapRenderer.js";
 import { applyTranslations, t } from "./services/i18n.js";
 import { requireLoggedInUser } from "./services/sessionService.js";
 import { initDashboardIdentity } from "./ui/userIdentity.js";
+import { loadProgress } from "./state/gameState.js";
 
 function initRoadmapDrag() {
   const container = document.querySelector(".roadmap-container");
@@ -96,6 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const user = requireLoggedInUser("../index.html");
   if (!user) return;
 
+  loadProgress(user.id_user);
   applyTranslations(document);
   initRoadmapDrag();
   initSidebarToggle();
