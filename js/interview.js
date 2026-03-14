@@ -13,6 +13,7 @@ import {
   getLoggedInUser,
   requireLoggedInUser,
 } from "./services/sessionService.js";
+import { buildN8nAnswerPayload, ensureInterviewSessionId, sendN8nAnswer } from "./services/n8nBridge.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const chatWorld = document.querySelector("#chatWorld");
@@ -21,6 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatMessages = document.querySelector("#chatMessages");
   const chatInput = document.querySelector("#chatInput");
   const sendBtn = document.querySelector("#chatSendBtn");
+  const micBtn = document.querySelector("#chatMicBtn");
+  const micStatus = document.querySelector("#chatMicStatus");
 
   if (!chatWorld || !roadmapWorld || !closeChatBtn || !chatMessages || !chatInput || !sendBtn) {
     return;
@@ -68,6 +71,15 @@ document.addEventListener("DOMContentLoaded", () => {
     message.innerHTML = content;
     chatMessages.appendChild(message);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function setChatBusy(busy) {
+    chatInput.disabled = busy;
+    sendBtn.disabled = busy;
+    if (micBtn) {
+      micBtn.disabled = busy;
+      micBtn.classList.toggle("is-busy", Boolean(busy));
+    }
   }
 
   function buildContext(nodeDetail) {
@@ -158,6 +170,57 @@ document.addEventListener("DOMContentLoaded", () => {
       context,
     });
 
+    let detailed = null;
+    try {
+      const user = getLoggedInUser();
+      const ensured = await ensureInterviewSessionId({ context, user });
+      const id_session = ensured?.id_session || session?.sessionId || null;
+
+      if (id_session) {
+        const respuestas = session.questions.map((question, index) => {
+          const entry = session.answers[index] || {};
+          return {
+            pregunta: question?.question_text ?? "",
+            respuesta: entry.answer ?? "",
+            puntaje: entry.score ?? entry.puntaje ?? 0,
+            razon: entry.reason ?? entry.razon ?? "",
+          };
+        });
+
+        const payload = {
+          id_session,
+          id_user: user?.id_user ?? null,
+          is_final: true,
+          respuestas,
+        };
+
+        detailed = await sendN8nAnswer({ payload });
+      }
+    } catch (error) {
+      console.error("No se pudo obtener feedback detallado de n8n:", error);
+    }
+
+    if (detailed?.feedback || detailed?.puntaje_final !== undefined) {
+      const scoreLabel = detailed?.puntaje_final ?? summary.score;
+      appendMessage(
+        "assistant",
+        `<strong>${t("interviewer.label")}:</strong> Resultado final: ${scoreLabel}/5.`,
+      );
+      if (Array.isArray(detailed?.fortalezas) && detailed.fortalezas.length) {
+        appendMessage("assistant", `<strong>Fortalezas:</strong> ${detailed.fortalezas.join(", ")}.`);
+      }
+      if (Array.isArray(detailed?.debilidades) && detailed.debilidades.length) {
+        appendMessage("assistant", `<strong>Debilidades:</strong> ${detailed.debilidades.join(", ")}.`);
+      }
+      if (Array.isArray(detailed?.recomendaciones) && detailed.recomendaciones.length) {
+        appendMessage("assistant", `<strong>Recomendaciones:</strong> ${detailed.recomendaciones.join(", ")}.`);
+      }
+      if (detailed?.feedback) {
+        appendMessage("assistant", detailed.feedback);
+      }
+      return;
+    }
+
     appendMessage(
       "assistant",
       `<strong>${t("interviewer.label")}:</strong> Resultado: ${summary.score} pts • ${summary.estimatedLevel}.`,
@@ -171,16 +234,85 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = chatInput.value.trim();
     if (!text) return;
 
-    appendMessage("user", `<strong>${t("you.label")}:</strong> ${text}`);
+    chatInput.value = "";
+    await submitAnswer({ answerText: text, audioBlob: null });
+  }
+
+  async function submitAnswer({ answerText, audioBlob }) {
+    if (!session) return;
+
+    setChatBusy(true);
+    if (micStatus) {
+      micStatus.textContent = audioBlob ? "Procesando audio..." : "Enviando respuesta...";
+    }
 
     const currentQuestion = session.questions[session.currentIndex];
-    session.answers[session.currentIndex] = {
-      questionId: currentQuestion.id_question,
-      answer: text,
+    const storedUser = getLoggedInUser();
+    const fallbackUser = storedUser || {
+      id_user: context?.idUser ?? context?.id_user ?? null,
     };
-    saveInterviewSession(session);
+    const ensured = await ensureInterviewSessionId({ context, user: fallbackUser });
+    const id_session = ensured?.id_session || session?.sessionId || null;
+    const id_question_instance =
+      currentQuestion?.id_question_instance ??
+      session?.questionInstances?.[session.currentIndex]?.id_question_instance ??
+      session.currentIndex + 1;
+    const missing = [];
+    if (!id_session) missing.push("id_session");
+    if (!fallbackUser?.id_user) missing.push("id_user");
+    if (!currentQuestion?.id_question) missing.push("id_question");
+    if (!(session.currentIndex + 1)) missing.push("order_num");
+    if (missing.length) {
+      appendMessage(
+        "assistant",
+        `<strong>${t("interviewer.label")}:</strong> Faltan campos obligatorios: ${missing.join(", ")}.`,
+      );
+      setChatBusy(false);
+      return;
+    }
 
-    chatInput.value = "";
+    try {
+      const payload = buildN8nAnswerPayload({
+        id_session,
+        id_question_instance,
+        id_user: fallbackUser?.id_user ?? null,
+        order_num: session.currentIndex + 1,
+        id_question: currentQuestion?.id_question ?? null,
+        pregunta: currentQuestion?.question_text ?? "",
+        texto: answerText || "",
+        audio: null,
+      });
+
+      const response = await sendN8nAnswer({ payload, audioBlob });
+      const resolvedText = response?.texto || answerText || "";
+
+      appendMessage("user", `<strong>${t("you.label")}:</strong> ${resolvedText}`);
+      if (response?.puntaje !== undefined || response?.razon) {
+        appendMessage(
+          "assistant",
+          `<strong>${t("interviewer.label")}:</strong> Evaluación: ${response?.puntaje ?? 0}/1. ${response?.razon || ""}`,
+        );
+      }
+
+      session.answers[session.currentIndex] = {
+        questionId: currentQuestion.id_question,
+        answer: resolvedText,
+        score: response?.puntaje ?? null,
+        reason: response?.razon ?? null,
+      };
+      saveInterviewSession(session);
+    } catch (error) {
+      appendMessage(
+        "assistant",
+        `<strong>${t("interviewer.label")}:</strong> ${error?.message || "No se pudo procesar tu respuesta."}`,
+      );
+      return;
+    } finally {
+      setChatBusy(false);
+      if (micStatus) {
+        micStatus.textContent = "Click para grabar tu respuesta";
+      }
+    }
 
     if (session.currentIndex < session.questions.length - 1) {
       session.currentIndex += 1;
@@ -204,6 +336,72 @@ document.addEventListener("DOMContentLoaded", () => {
       void sendAnswer();
     }
   });
+
+  if (micBtn && micStatus) {
+    const hasSupport = Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+    if (!hasSupport) {
+      micBtn.disabled = true;
+      micStatus.textContent = "Grabación de audio no disponible en este navegador.";
+    } else {
+      let mediaRecorder = null;
+      let chunks = [];
+      let isRecording = false;
+
+      const setMicUi = (state) => {
+        if (state === "recording") {
+          micBtn.classList.add("is-recording");
+          micStatus.textContent = "Grabando... vuelve a presionar para detener";
+        } else if (state === "processing") {
+          micBtn.classList.remove("is-recording");
+          micBtn.classList.add("is-busy");
+          micStatus.textContent = "Procesando audio...";
+        } else {
+          micBtn.classList.remove("is-recording", "is-busy");
+          micStatus.textContent = "Click para grabar tu respuesta";
+        }
+      };
+
+      micBtn.addEventListener("click", async () => {
+        if (isRecording) {
+          mediaRecorder?.stop();
+          return;
+        }
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          chunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.addEventListener("dataavailable", (event) => {
+            if (event.data && event.data.size > 0) {
+              chunks.push(event.data);
+            }
+          });
+
+          mediaRecorder.addEventListener("stop", async () => {
+            stream.getTracks().forEach((track) => track.stop());
+            isRecording = false;
+            setMicUi("processing");
+
+            const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+            await submitAnswer({ answerText: chatInput.value.trim(), audioBlob: blob });
+
+            setMicUi("idle");
+          });
+
+          isRecording = true;
+          setMicUi("recording");
+          mediaRecorder.start();
+        } catch (error) {
+          appendMessage(
+            "assistant",
+            `<strong>${t("interviewer.label")}:</strong> No se pudo acceder al micrófono.`,
+          );
+          setMicUi("idle");
+        }
+      });
+    }
+  }
 
   document.addEventListener("interview:start", (event) => {
     void startInterview(event.detail);

@@ -6,6 +6,7 @@ import routerQuestion from './modules/questions/question.route.js'
 import routerUser from './modules/users/user.route.js'
 import profileRouter from './modules/profiles/profile.route.js'
 import interviewRouter from './modules/interview/interview.route.js'
+import voiceRouter from './modules/voice/voice.route.js'
 
 const app = express()
 const __filename = fileURLToPath(import.meta.url)

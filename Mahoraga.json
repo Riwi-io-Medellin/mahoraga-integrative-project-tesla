@@ -1,0 +1,721 @@
+{
+  "name": "Mahoraga",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "=voice-feedback",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1920,
+        672
+      ],
+      "id": "2032766f-13f2-4885-b84a-211070b0a192",
+      "name": "Webhook",
+      "webhookId": "ab18e0c9-d9d0-43c9-a219-41031e0f0398",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rdQ3Ghdlvk0eCTAB",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec5729cb-4c0f-4b39-bcdc-51d955c13002",
+              "name": "id_session",
+              "value": "={{ $json.body.id_session }}",
+              "type": "number"
+            },
+            {
+              "id": "9aeabf23-90b6-4064-bfad-8eaed58993a5",
+              "name": "id_question_instance",
+              "value": "={{ $json.body.id_question_instance }}",
+              "type": "number"
+            },
+            {
+              "id": "c8a77140-216e-4b9a-9b4d-aa5238358c36",
+              "name": "id_user",
+              "value": "={{ $json.body.id_user }}",
+              "type": "number"
+            },
+            {
+              "id": "477e0502-e190-484a-b4a5-f8dd325c3396",
+              "name": "order_num",
+              "value": "={{ $json.body.order_num }}",
+              "type": "number"
+            },
+            {
+              "id": "de1050fc-0a5f-4096-b826-8abb2150d276",
+              "name": "id_question",
+              "value": "={{ $json.body.id_question }}",
+              "type": "number"
+            },
+            {
+              "id": "004d05cc-0edd-49e2-a4cd-967cf66f2338",
+              "name": "audio",
+              "value": "={{ $json.body.audio }}",
+              "type": "string"
+            },
+            {
+              "id": "6035373c-0ffd-4abc-ab32-7f2d0020b173",
+              "name": "texto",
+              "value": "={{ $json.body.texto }}",
+              "type": "string"
+            },
+            {
+              "id": "is_final_flag",
+              "name": "is_final",
+              "value": "={{ $json.body.is_final ?? $json.body.final ?? false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "respuestas_list",
+              "name": "respuestas",
+              "value": "={{ $json.body.respuestas ?? [] }}",
+              "type": "json"
+            },
+            {
+              "id": "pregunta_text",
+              "name": "pregunta",
+              "value": "={{ $json.body.pregunta ?? $json.body.question ?? \"\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1664,
+        672
+      ],
+      "id": "95fe6a0a-2099-4924-a755-67e3adaa8823",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "Flujo IA (n8n):\n\n1. Al iniciar una prueba, al usuario se le habilita la opcion de ia.\n2. El usuario al presionar la opcion responde la pregunta por voz en caso de que el audio no sea muy legible, solicitar que de la instrucción mediante escritura en un campo de texto.\n3. Son un total de 5 preguntas solo abiertas, estas salen de forma aleatorio dependiendo su nivel.\n4. una vez responda las preguntas, almacenarlas en un array en donde estos se van a dar una calificación 1/5.\n5. al finalizar dar un feedback sobre el resultado, un feedback en un modal cuando se presione el boton de finalizar entrevista.\n",
+        "height": 240,
+        "width": 816,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1584,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "fc21dbc0-10ee-4f92-87d4-274787bc3727",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "audio",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -880,
+        112
+      ],
+      "id": "942c6ca2-ef28-4b11-acd7-c5d6e7104c50",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=Eres un evaluador técnico de la Plataforma de Evaluación Técnica.\nTu trabajo es calificar la respuesta de un candidato a una pregunta técnica abierta.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Si la respuesta es correcta o parcialmente correcta → puntaje 1\n3. Si la respuesta es incorrecta, vacía o no relacionada → puntaje 0\n4. La razón debe ser máximo 1 oración en español.\n\nFORMATO DE RESPUESTA (exacto):\n{\"puntaje\": 1, \"razon\": \"El candidato explicó correctamente el concepto.\"}\n{\"puntaje\": 0, \"razon\": \"No mencionó los aspectos clave del tema.\"}"
+            },
+            {
+              "content": "=Pregunta: {{ $(\"Edit Fields\").item.json.pregunta ?? \"\" }}\n\nRespuesta del candidato: {{ $json.text ?? $(\"Edit Fields\").item.json.texto }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 150,
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -560,
+        704
+      ],
+      "id": "c0d5d326-8a0f-4ca5-8a62-64cf000530dc",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={{ (() => { try { return JSON.parse($(\"Message feedback\").item.json.message.content); } catch (e) { return { feedback: $(\"Message feedback\").item.json.message.content }; } })() }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1472,
+        352
+      ],
+      "id": "5b87e556-ef88-42fc-9751-0ff9e1b175ba",
+      "name": "Respond to Webhook - feedback"
+    },
+    {
+      "parameters": {
+        "content": "\n\nUsuario activa opción IA\n        ↓\nResponde pregunta (voz o texto)\n        ↓\n¿Es audio?\n├── SÍ → Whisper → ¿texto vacío?\n│              ├── SÍ  → pedir respuesta por texto\n│              └── NO  → continuar\n└── NO → usar texto directo\n        ↓\nChatGPT evalúa la respuesta\n(¿es correcta? → 1 punto, incorrecta → 0)\n        ↓\nGuardar en array [pregunta, respuesta, puntaje]\n        ↓\n¿Ya van 5 preguntas?\n├── NO → siguiente pregunta (loop)\n└── SÍ → ChatGPT genera feedback completo\n                ↓\n            TTS vocaliza el feedback\n                ↓\n        Modal con feedback + puntaje X/5",
+        "height": 464,
+        "width": 816,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        560,
+        -432
+      ],
+      "typeVersion": 1,
+      "id": "bf8ca88e-096d-441f-83d8-18c86977cc11",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"puntaje\": $(\"Parse model output\").item.json.puntaje, \"razon\": $(\"Parse model output\").item.json.razon, \"texto\": ($json.text ?? $(\"Edit Fields\").item.json.texto), \"continuar\": true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        704
+      ],
+      "id": "4735407c-cd6d-467d-82d2-2ebf597f1da9",
+      "name": "Respond to Webhook - score"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"audio_no_legible\",\n  \"mensaje\": \"No pudimos entender tu audio, por favor escribe tu respuesta.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -272,
+        480
+      ],
+      "id": "be51bb73-7f85-4c87-aeea-ac7f3f04af7a",
+      "name": "RTW - audio not readable"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "27ba600b-75ef-4047-b065-2215f8000cf5",
+              "leftValue": "={{ $binary.audio ? '1' : ($json.audio ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1136,
+        688
+      ],
+      "id": "7a3fb2b8-d440-429e-a41f-09a1115882c2",
+      "name": "If - is a voice record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3eaec3fa-02e3-4f18-9d80-01c5e2b371b1",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -768,
+        496
+      ],
+      "id": "0d420d1e-144e-4622-a169-f01717cd9168",
+      "name": "If - empty text"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres NOVA, asistente de la Plataforma de Evaluación Técnica.\nGeneras feedback detallado y útil para candidatos al finalizar su prueba.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Calcula el puntaje final X/5 sumando los puntajes (0/1) en \"respuestas\".\n3. Incluye fortalezas, debilidades y recomendaciones concretas.\n4. Usa un tono cercano, claro y profesional.\n\nFORMATO EXACTO:\n{\n  \"puntaje_final\": 3,\n  \"fortalezas\": [\"...\"],\n  \"debilidades\": [\"...\"],\n  \"recomendaciones\": [\"...\"],\n  \"feedback\": \"Texto corto y motivador.\"\n}"
+            },
+            {
+              "content": "=Resultados de la sesión (respuestas):\n{{ JSON.stringify($(\"Edit Fields\").item.json.respuestas ?? []) }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 350,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        352
+      ],
+      "id": "ac67d1eb-8fa7-4bb5-8d78-5cefc0c9bb16",
+      "name": "Message feedback",
+      "credentials": {
+        "openAiApi": {
+          "id": "bUTj6bnJhTPKQvMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1d9c9d0-2b16-4f2c-9f05-efc6d0a0b101",
+              "leftValue": "={{ String($('Edit Fields').item.json.id_session ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c60c0f4b-86bd-4f7c-85c8-6739d2b9a1f5",
+              "leftValue": "={{ String($('Edit Fields').item.json.id_user ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a6a0f3f3-2c94-4015-9a94-3a7cc7e7d62c",
+              "leftValue": "={{ String($('Edit Fields').item.json.order_num ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b5f4d6b3-7cda-4c57-a7ef-0f6c0c4b2d78",
+              "leftValue": "={{ String($('Edit Fields').item.json.id_question ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1456,
+        224
+      ],
+      "id": "b64dab2a-336f-4583-872e-c8458bb1d28a",
+      "name": "If - missing required fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "is_final_condition",
+              "leftValue": "={{ String($(\"Edit Fields\").item.json.is_final ?? \"\").toLowerCase() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1320,
+        224
+      ],
+      "id": "if-final-feedback",
+      "name": "If - final feedback"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"missing_required_fields\",\n  \"mensaje\": \"Faltan campos obligatorios en la solicitud.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1168,
+        208
+      ],
+      "id": "a3c1eb94-9371-46b7-b285-1c61030c720c",
+      "name": "RTW - missing required fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ee84b6a4-6b8f-4e6d-8e0a-1d2b3c4d5e6f",
+              "leftValue": "={{ $json.error ? JSON.stringify($json.error) : '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -480,
+        112
+      ],
+      "id": "3d1b300e-fc39-4b6f-9628-c46d694f913a",
+      "name": "If - transcription failed"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"transcription_failed\",\n  \"mensaje\": \"No pudimos transcribir tu audio (posible timeout). Por favor escribe tu respuesta.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        432,
+        96
+      ],
+      "id": "263eab9d-97e6-40e9-ba61-3373af955db3",
+      "name": "RTW - transcription failed"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2c4f8a1-0c8c-4a5f-8a0e-1a2b3c4d5e6f",
+              "name": "puntaje",
+              "value": "={{ (() => { try { const obj = JSON.parse($('Message a model').item.json.message.content); return (obj?.puntaje ?? 0); } catch (e) { return 0; } })() }}",
+              "type": "number"
+            },
+            {
+              "id": "a9b1c2d3-e4f5-4a6b-9c0d-1e2f3a4b5c6d",
+              "name": "razon",
+              "value": "={{ (() => { try { const obj = JSON.parse($('Message a model').item.json.message.content); return (obj?.razon ?? 'Respuesta no valida del modelo.'); } catch (e) { return 'Respuesta no valida del modelo.'; } })() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        704
+      ],
+      "id": "ef4c39aa-6a88-42ac-8ed0-7cc85611cac5",
+      "name": "Parse model output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If - missing required fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "If - transcription failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse model output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - is a voice record": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - empty text": {
+      "main": [
+        [
+          {
+            "node": "RTW - audio not readable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message feedback": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - missing required fields": {
+      "main": [
+        [
+          {
+            "node": "RTW - missing required fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - final feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - transcription failed": {
+      "main": [
+        [
+          {
+            "node": "RTW - transcription failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - empty text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse model output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - final feedback": {
+      "main": [
+        [
+          {
+            "node": "Message feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - is a voice record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3b8060d7-0b80-4948-8026-c89dfe96baee",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a27974cdf4529dc831ef8fe70c5d901e8eefe1b7f0015ac585ea3af116bfcb6a"
+  },
+  "id": "p1DpgOJfShhQT8jY",
+  "tags": []
+}
