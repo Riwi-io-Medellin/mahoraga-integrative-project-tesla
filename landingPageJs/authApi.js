@@ -1,17 +1,16 @@
 const API_ORIGIN =
-  window.location.port === '3000'
+  window.location.port === "3000"
     ? window.location.origin
     : `${window.location.protocol}//${window.location.hostname}:3000`;
 
-const USERS_API_URL = `${API_ORIGIN}/users`;
+const USERS_API_URL = `${API_ORIGIN}/api/users`;
 
-// DTO para el registro: define la forma del payload que viaja al backend.
 export class UserCreateDTO {
   constructor({
     user_name,
     email,
     password,
-    user_status = 'active',
+    user_status = "active",
     id_level = 2,
     id_language = 1,
   }) {
@@ -24,42 +23,52 @@ export class UserCreateDTO {
   }
 }
 
-// Crea usuario usando POST /api/users.
 export async function createUser(userDTO) {
   const response = await fetch(USERS_API_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(userDTO),
   });
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    const message = errorBody.message || 'Error creando usuario';
-    const detail = errorBody.error ? ` (${errorBody.error})` : '';
-    throw new Error(`${message}${detail}`);
+    throw new Error(errorBody.error || "Error creating account. Try again later.");
   }
 
   return await response.json();
 }
 
-// Inicia sesión usando POST /api/users/login.
 export async function loginUser(login, password) {
   const response = await fetch(`${USERS_API_URL}/login`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ login, password }),
   });
 
+  const payload = await response.json().catch(() => ({}));
+  console.log("loginUser response payload", payload);
+
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.error || 'Error logging in');
+    throw new Error(payload.error || "Error logging in");
   }
 
-  return await response.json();
+  return payload;
+}
+
+export async function fetchUsers() {
+  const response = await fetch(USERS_API_URL);
+  const payload = await response.json().catch(() => ({}));
+  console.log("fetchUsers payload", payload);
+
+  if (!response.ok) {
+    throw new Error(payload.error || "Error fetching users");
+  }
+
+  return payload;
 }
 
 // Obtiene todos los usuarios para resolver id_user si el login no lo trae.

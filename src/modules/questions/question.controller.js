@@ -4,8 +4,8 @@ import {
     getInterviewQuestions as getInterviewQuestionsService,
     getQuestionByLevel as getQuestionByLevelService,
     updateQuestion as updateQuestionService,
-    newInterviewQuestion,
-    newQuestionAnswered
+    newQuestionAnswered,
+    createQuestionInstances
 } from './question.service.js'
 
 export const getQuestions = async (req, res) => {
@@ -119,6 +119,12 @@ export const getInterviewQuestions = async (req, res) => {
         limit = '5'
     } = req.query
 
+    if (!id_user) {
+        return res.status(400).json({
+            error: 'Debes enviar id_user para evitar que se repitan preguntas ya respondidas por el usuario.'
+        })
+    }
+
     try {
         const data = await getInterviewQuestionsService({
             id_level: level ? Number(level) : null,
@@ -139,11 +145,13 @@ export const getInterviewQuestions = async (req, res) => {
 }
 
 export const newInterviewQuestionReq = async (req, res) => {
-    const { id_session, id_question} = res.body
+    const { id_session, id_questions } = req.body
     const missingFields = []
 
+    console.log('newInterviewQuestionReq body', req.body);
+
     if (!id_session) missingFields.push('id_session')
-    if (!id_question) missingFields.push('id_question')
+    if (!Array.isArray(id_questions) || !id_questions.length) missingFields.push('id_questions')
 
     if (missingFields.length > 0) {
         return res.status(400).json({
@@ -153,10 +161,21 @@ export const newInterviewQuestionReq = async (req, res) => {
     }
 
     try {
-        const newQuestionInstance = await newInterviewQuestion(id_session, id_question)
+        const numericIds = id_questions
+            .map((value) => Number(value))
+            .filter((value) => Number.isInteger(value) && value > 0)
+
+        if (!numericIds.length) {
+            return res.status(400).json({
+                error: 'No se enviaron preguntas válidas para crear las instancias.'
+            })
+        }
+
+        const stored = await createQuestionInstances(id_session, numericIds)
+
         res.status(201).json({
             message: 'La question instance se crea correctamente.',
-            questionInstance: newQuestionInstance
+            created: stored
         })
     } catch (error) {
         console.error('Error creating question instance', error)
