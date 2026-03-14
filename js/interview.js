@@ -15,6 +15,141 @@ import {
 } from "./services/sessionService.js";
 import { buildN8nAnswerPayload, ensureInterviewSessionId, sendN8nAnswer } from "./services/n8nBridge.js";
 
+// Helpers para puntajes ponderados
+function mapDifficultyToPesoLevel(difficulty) {
+  if (difficulty === "advanced") return "senior";
+  if (difficulty === "intermediate") return "mid";
+  return "junior";
+}
+
+function calcularPuntaje(metrics, nivel = "mid") {
+  if (!metrics) return { puntaje: null, aprobado: false, nivel_respuesta: "Sin datos" };
+
+  const pesos = {
+    junior: { correctness: 0.40, depth: 0.15, clarity: 0.25, relevance: 0.15, examples: 0.05 },
+    mid: { correctness: 0.35, depth: 0.25, clarity: 0.20, relevance: 0.15, examples: 0.05 },
+    senior: { correctness: 0.25, depth: 0.40, clarity: 0.15, relevance: 0.15, examples: 0.05 },
+  };
+
+  const w = pesos[nivel] || pesos.mid;
+
+  const puntaje = Math.round(
+    (metrics.correctness || 0) * w.correctness +
+      (metrics.depth || 0) * w.depth +
+      (metrics.clarity || 0) * w.clarity +
+      (metrics.relevance || 0) * w.relevance +
+      (metrics.examples || 0) * w.examples,
+  );
+
+  const aprobado = puntaje >= 60 && (metrics.correctness || 0) >= 50;
+  const nivel_respuesta =
+    puntaje >= 85 ? "Excelente" : puntaje >= 70 ? "Bueno" : puntaje >= 55 ? "Básico" : "Insuficiente";
+
+  return { puntaje, aprobado, nivel_respuesta };
+}
+
+function buildFallbackMetrics(answerText = "") {
+  const lengthScore = Math.max(20, Math.min(90, Math.round(answerText.trim().length / 3)));
+  const base = answerText.trim().length < 20 ? 25 : lengthScore;
+  return {
+    correctness: base,
+    depth: Math.max(20, Math.min(85, base - 5)),
+    clarity: Math.max(20, Math.min(90, base + 5)),
+    relevance: Math.max(20, Math.min(90, base)),
+    examples: Math.max(10, Math.min(70, Math.round(base * 0.6))),
+  };
+}
+
+// Genera fortalezas/debilidades/recomendaciones locales si la IA no las devuelve
+function buildLocalInsights({ answers = [], scoreLabel = 0 }) {
+  const metricNames = ["correctness", "depth", "clarity", "relevance", "examples"];
+  const totals = { correctness: 0, depth: 0, clarity: 0, relevance: 0, examples: 0 };
+  let count = 0;
+
+  answers.forEach((a) => {
+    if (a?.metrics) {
+      metricNames.forEach((k) => {
+        totals[k] += Number(a.metrics[k] || 0);
+      });
+      count += 1;
+    }
+  });
+
+  const avg = {};
+  metricNames.forEach((k) => {
+    avg[k] = count ? Math.round(totals[k] / count) : 0;
+  });
+
+  const label = {
+    correctness: "precision tecnica",
+    depth: "profundidad",
+    clarity: "claridad",
+    relevance: "relevancia",
+    examples: "uso de ejemplos",
+  };
+
+  const strengths = metricNames
+    .sort((a, b) => avg[b] - avg[a])
+    .slice(0, 2)
+    .map((k) => (avg[k] > 0 ? `Fuerte en ${label[k]}` : null))
+    .filter(Boolean);
+
+  const weaknesses = metricNames
+    .sort((a, b) => avg[a] - avg[b])
+    .slice(0, 2)
+    .map((k) => (avg[k] > 0 ? `${label[k]} necesita mejora` : null))
+    .filter(Boolean);
+
+  const recomendacionesCalc = weaknesses.length
+    ? weaknesses.map((w) => w.replace("necesita mejora", "refuerzalo con 2-3 ejercicios guiados y ejemplos concretos"))
+    : ["Revisa la documentacion oficial y practica ejemplos cortos."];
+
+  const resumen = `Lo mejor: ${strengths[0] || "completaste la entrevista"}. A mejorar: ${weaknesses[0] || "profundizar con ejemplos"}.`; 
+
+  return {
+    fortalezas: strengths.length ? strengths : ["Mostraste motivacion y completaste todas las preguntas."],
+    debilidades: weaknesses.length ? weaknesses : ["Profundiza en ejemplos practicos y terminos clave."],
+    recomendaciones: recomendacionesCalc,
+    resumen,
+  };
+}
+
+// Construye feedback por pregunta cuando la IA no lo env?a cuando la IA no lo envía
+function buildPerQuestionFeedback({ questions = [], answers = [] }) {
+  const label = {
+    correctness: "precisión",
+    depth: "profundidad",
+    clarity: "claridad",
+    relevance: "relevancia",
+    examples: "uso de ejemplos",
+  };
+
+  return questions.map((question, index) => {
+    const entry = answers[index] || {};
+    const metrics = entry.metrics || buildFallbackMetrics(entry.answer || "");
+
+    const sorted = Object.entries(metrics)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 2);
+
+    const weakest = sorted.map(([k, v]) => `${label[k]} (${v})`).join(" y ");
+    const razon =
+      entry.reason ||
+      entry.razon ||
+      `Necesita mejorar ${weakest}; agrega detalles y ejemplos concretos.`;
+
+    const descripcion = `Enfócate en ${weakest}; practica explicando el concepto y muestra un ejemplo corto.`;
+
+    return {
+      pregunta: question?.question_text || `Pregunta ${index + 1}`,
+      puntaje: entry.score ?? entry.puntaje ?? 0,
+      razon,
+      descripcion,
+      respuesta: entry.answer || "",
+    };
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const chatWorld = document.querySelector("#chatWorld");
   const roadmapWorld = document.querySelector("#roadmapWorld");
@@ -214,14 +349,42 @@ document.addEventListener("DOMContentLoaded", () => {
             respuesta: entry.answer ?? "",
             puntaje: entry.score ?? entry.puntaje ?? 0,
             razon: entry.reason ?? entry.razon ?? "",
+            metrics: entry.metrics ?? null,
           };
         });
+
+        const respuestasDetalladas = session.questions.map((question, index) => {
+          const entry = session.answers[index] || {};
+          return {
+            orden: index + 1,
+            pregunta: question?.question_text ?? "",
+            respuesta: entry.answer ?? "",
+            puntaje: entry.score ?? entry.puntaje ?? 0,
+            razon: entry.reason ?? entry.razon ?? "",
+            metrics: entry.metrics ?? null,
+          };
+        });
+
+        const scorePromedio =
+          respuestasDetalladas.length > 0
+            ? Math.round(
+                respuestasDetalladas.reduce((acc, cur) => acc + (Number(cur.puntaje) || 0), 0) /
+                  respuestasDetalladas.length,
+              )
+            : 0;
 
         const payload = {
           id_session,
           id_user: user?.id_user ?? null,
           is_final: true,
           respuestas,
+          respuestasDetalladas,
+          technology: context?.technology ?? "",
+          topic: context?.topic ?? "",
+          difficulty: context?.difficulty ?? "",
+          totalQuestions: session.questions.length,
+          scorePromedio,
+          nivelEstimado: summary?.estimatedLevel ?? "",
         };
 
         detailed = await sendN8nAnswer({ payload });
@@ -250,35 +413,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const fortalezas = Array.isArray(detailed?.fortalezas) ? detailed.fortalezas : [];
     const debilidades = Array.isArray(detailed?.debilidades) ? detailed.debilidades : [];
     const recomendaciones = Array.isArray(detailed?.recomendaciones) ? detailed.recomendaciones : [];
-    const feedbackText = detailed?.feedback || summary?.feedback || "";
+    let feedbackText = detailed?.feedback || summary?.feedback || "";
     const preguntas = Array.isArray(detailed?.preguntas) ? detailed.preguntas : [];
 
-    const preguntasHtml = preguntas.length
-      ? preguntas
-          .map(
-            (item, index) => `
-            <div class="feedback-question">
-              <strong>${item?.pregunta || `Pregunta ${index + 1}`}</strong>
-              <div>Puntaje: ${item?.puntaje ?? 0}/1</div>
-              <div>Razón: ${item?.razon || "Sin detalle."}</div>
-              <div>${item?.descripcion || "Sin descripción adicional."}</div>
-            </div>
-          `,
-          )
-          .join("")
-      : session.questions
-          .map((question, index) => {
-            const entry = session.answers[index] || {};
-            return `
-              <div class="feedback-question">
-                <strong>${question?.question_text || `Pregunta ${index + 1}`}</strong>
-                <div>Puntaje: ${entry?.score ?? 0}/1</div>
-                <div>Razón: ${entry?.reason || "Sin detalle."}</div>
-                <div>Respuesta: ${entry?.answer || ""}</div>
-              </div>
-            `;
-          })
-          .join("");
+    if (!fortalezas.length || !debilidades.length || !recomendaciones.length) {
+      const local = buildLocalInsights({ answers: session.answers, scoreLabel });
+      if (!fortalezas.length) fortalezas.push(...local.fortalezas);
+      if (!debilidades.length) debilidades.push(...local.debilidades);
+      if (!recomendaciones.length) recomendaciones.push(...local.recomendaciones);
+      if (!feedbackText && local.resumen) feedbackText = local.resumen;
+    }
+
+    const resolvedFeedback =
+      feedbackText ||
+      (scoreLabel >= 80
+        ? "Buen desempeno general; sigue afinando con ejercicios mas complejos y ejemplos de produccion."
+        : scoreLabel >= 60
+          ? "Vas por buen camino; profundiza con ejemplos concretos y explica el por que de cada decision."
+          : "Necesitas reforzar los fundamentos y practicar con ejercicios cortos diarios.");
+
+    
 
     chatFeedback.innerHTML = `
       <h3 class="feedback-title">Feedback final de la entrevista</h3>
@@ -287,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <span>Resultado final: ${scoreLabel}/100</span>
           <span>Preguntas: ${session.questions.length}</span>
         </div>
-        <p>${feedbackText || "No fue posible obtener feedback detallado de IA. Se muestra resumen local."}</p>
+        <p>${resolvedFeedback || "No fue posible obtener feedback detallado de IA. Se muestra resumen local."}</p>
       </div>
       <div class="feedback-actions">
         <button class="feedback-action-btn primary" id="feedbackRetryBtn">
@@ -311,10 +465,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <strong>Recomendaciones</strong>
         ${recomendaciones.length ? `<ul class="feedback-list">${recomendaciones.map((r) => `<li>${r}</li>`).join("")}</ul>` : "<p>Sin recomendaciones registradas.</p>"}
       </div>
-      <div class="feedback-block">
-        <strong>Detalle por pregunta</strong>
-        ${preguntasHtml}
-      </div>
     `;
 
     const retryBtn = document.getElementById("feedbackRetryBtn");
@@ -336,7 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!text) return;
 
     chatInput.value = "";
-    await submitAnswer({ answerText: text, audioBlob: null, skipRemote: true });
+    await submitAnswer({ answerText: text, audioBlob: null, skipRemote: false });
   }
 
   async function submitAnswer({ answerText, audioBlob, skipRemote = false }) {
@@ -390,15 +540,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const response = await sendN8nAnswer({ payload, audioBlob });
         resolvedText = response?.texto || answerText || "";
+        let metrics = response?.metrics || null;
+        if (!metrics || Object.values(metrics).every((v) => v === 0)) {
+          metrics = buildFallbackMetrics(resolvedText);
+        }
+        const pesoLevel = mapDifficultyToPesoLevel(context?.difficulty);
+        const weighted = calcularPuntaje(metrics, pesoLevel);
+
+        session.answers[session.currentIndex] = {
+          questionId: currentQuestion.id_question,
+          answer: resolvedText,
+          score: response?.puntaje ?? weighted.puntaje ?? 0,
+          razon: response?.razon ?? response?.reason ?? null,
+          reason: response?.razon ?? response?.reason ?? null,
+          metrics,
+          nivel_respuesta: weighted.nivel_respuesta,
+          aprobado: weighted.aprobado,
+        };
+        saveInterviewSession(session);
+      } else {
+        // flujo local (skipRemote) sin IA
+        const metrics = buildFallbackMetrics(resolvedText);
+        const pesoLevel = mapDifficultyToPesoLevel(context?.difficulty);
+        const weighted = calcularPuntaje(metrics, pesoLevel);
+
+        session.answers[session.currentIndex] = {
+          questionId: currentQuestion.id_question,
+          answer: resolvedText,
+          score: weighted.puntaje ?? 0,
+          razon: null,
+          reason: null,
+          metrics,
+          nivel_respuesta: weighted.nivel_respuesta,
+          aprobado: weighted.aprobado,
+        };
+        saveInterviewSession(session);
       }
 
       appendMessage("user", `<strong>${t("you.label")}:</strong> ${resolvedText}`);
-
-      session.answers[session.currentIndex] = {
-        questionId: currentQuestion.id_question,
-        answer: resolvedText,
-      };
-      saveInterviewSession(session);
     } catch (error) {
       appendMessage(
         "assistant",

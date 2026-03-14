@@ -20,6 +20,55 @@ import {
 } from "./services/sessionService.js";
 import { initInterviewIdentity } from "./ui/userIdentity.js";
 
+// Calcula puntaje ponderado según nivel y métricas devueltas por IA
+function calcularPuntaje(metrics, nivel = "mid") {
+  if (!metrics) return { puntaje: null, aprobado: false, nivel_respuesta: "Sin datos" };
+
+  const pesos = {
+    junior: { correctness: 0.40, depth: 0.15, clarity: 0.25, relevance: 0.15, examples: 0.05 },
+    mid:    { correctness: 0.35, depth: 0.25, clarity: 0.20, relevance: 0.15, examples: 0.05 },
+    senior: { correctness: 0.25, depth: 0.40, clarity: 0.15, relevance: 0.15, examples: 0.05 },
+  };
+
+  const w = pesos[nivel] || pesos.mid;
+
+  const puntaje = Math.round(
+    (metrics.correctness || 0) * w.correctness +
+    (metrics.depth || 0)       * w.depth +
+    (metrics.clarity || 0)     * w.clarity +
+    (metrics.relevance || 0)   * w.relevance +
+    (metrics.examples || 0)    * w.examples
+  );
+
+  const aprobado = puntaje >= 60 && (metrics.correctness || 0) >= 50;
+  const nivel_respuesta =
+    puntaje >= 85 ? "Excelente" :
+    puntaje >= 70 ? "Bueno"     :
+    puntaje >= 55 ? "Básico"    : "Insuficiente";
+
+  return { puntaje, aprobado, nivel_respuesta };
+}
+
+function mapDifficultyToPesoLevel(difficulty) {
+  if (difficulty === "advanced") return "senior";
+  if (difficulty === "intermediate") return "mid";
+  return "junior";
+}
+
+// Fallback: genera métricas aproximadas si el modelo no las envía
+function buildFallbackMetrics(answerText = "") {
+  const lengthScore = Math.max(20, Math.min(90, Math.round(answerText.trim().length / 3)));
+  // Pequeña penalización si la respuesta es demasiado corta
+  const base = answerText.trim().length < 20 ? 25 : lengthScore;
+  return {
+    correctness: base,
+    depth: Math.max(20, Math.min(85, base - 5)),
+    clarity: Math.max(20, Math.min(90, base + 5)),
+    relevance: Math.max(20, Math.min(90, base)),
+    examples: Math.max(10, Math.min(70, Math.round(base * 0.6))),
+  };
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const user = requireLoggedInUser("../index.html");
 
@@ -210,12 +259,20 @@ async function handleTextSubmission({ session, context, answer }) {
 
     const currentQuestion = session.questions[session.currentIndex];
     const resolvedText = response?.texto ?? answer;
-
+    let metrics = response?.metrics || null;
+    if (!metrics || Object.values(metrics).every((v) => v === 0)) {
+      metrics = buildFallbackMetrics(resolvedText);
+    }
+    const pesoLevel = mapDifficultyToPesoLevel(context.difficulty);
+    const weighted = calcularPuntaje(metrics, pesoLevel);
     session.answers[session.currentIndex] = {
       questionId: currentQuestion.id_question,
       answer: resolvedText,
-      score: response?.puntaje ?? null,
+      score: response?.puntaje ?? weighted.puntaje ?? null,
       reason: response?.razon ?? null,
+      metrics,
+      nivel_respuesta: weighted.nivel_respuesta,
+      aprobado: weighted.aprobado,
     };
 
     saveInterviewSession(session);
@@ -261,6 +318,12 @@ async function handleAudioSubmission({ session, context, audioBlob }) {
 
     const currentQuestion = session.questions[session.currentIndex];
     const resolvedText = response?.texto || answerInput?.value?.trim() || "";
+    let metrics = response?.metrics || null;
+    if (!metrics || Object.values(metrics).every((v) => v === 0)) {
+      metrics = buildFallbackMetrics(resolvedText);
+    }
+    const pesoLevel = mapDifficultyToPesoLevel(context.difficulty);
+    const weighted = calcularPuntaje(metrics, pesoLevel);
 
     if (answerInput) {
       answerInput.value = resolvedText;
@@ -270,8 +333,11 @@ async function handleAudioSubmission({ session, context, audioBlob }) {
     session.answers[session.currentIndex] = {
       questionId: currentQuestion.id_question,
       answer: resolvedText,
-      score: response?.puntaje ?? null,
+      score: response?.puntaje ?? weighted.puntaje ?? null,
       reason: response?.razon ?? null,
+      metrics,
+      nivel_respuesta: weighted.nivel_respuesta,
+      aprobado: weighted.aprobado,
     };
 
     saveInterviewSession(session);

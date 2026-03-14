@@ -94,6 +94,48 @@
               "name": "pregunta",
               "value": "={{ $json.body.pregunta ?? $json.body.question ?? \"\" }}",
               "type": "string"
+            },
+            {
+              "id": "respuestas_detalladas",
+              "name": "respuestas_detalladas",
+              "value": "={{ $json.body.respuestasDetalladas ?? $json.body.respuestas_detalladas ?? [] }}",
+              "type": "json"
+            },
+            {
+              "id": "tech_field",
+              "name": "technology",
+              "value": "={{ $json.body.technology ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "topic_field",
+              "name": "topic",
+              "value": "={{ $json.body.topic ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty_field",
+              "name": "difficulty",
+              "value": "={{ $json.body.difficulty ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "score_promedio_field",
+              "name": "score_promedio",
+              "value": "={{ $json.body.scorePromedio ?? $json.body.score_promedio ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "nivel_estimado_field",
+              "name": "nivel_estimado",
+              "value": "={{ $json.body.nivelEstimado ?? $json.body.nivel_estimado ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "total_questions_field",
+              "name": "total_questions",
+              "value": "={{ $json.body.totalQuestions ?? $json.body.total_questions ?? null }}",
+              "type": "number"
             }
           ]
         },
@@ -159,7 +201,7 @@
           "values": [
             {
               "role": "system",
-              "content": "=Eres un evaluador técnico de la Plataforma de Evaluación Técnica.\nTu trabajo es calificar la respuesta de un candidato a una pregunta técnica abierta.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown ni code fences.\n2. Si la respuesta es correcta o parcialmente correcta → puntaje 1\n3. Si la respuesta es incorrecta, vacía o no relacionada → puntaje 0\n4. La razón debe ser máximo 1 oración en español.\n5. Si no puedes evaluar, responde con JSON válido: {\"puntaje\": 0, \"razon\": \"Respuesta no valida del modelo.\"}\n\nFORMATO DE RESPUESTA (exacto):\n{\"puntaje\": 1, \"razon\": \"El candidato explicó correctamente el concepto.\"}\n{\"puntaje\": 0, \"razon\": \"No mencionó los aspectos clave del tema.\"}"
+              "content": "=Eres un evaluador tecnico experto en desarrollo de software.\nEvalua la respuesta del candidato a la pregunta dada.\n\nREGLAS:\n- Responde UNICAMENTE con JSON valido, sin markdown ni texto extra.\n- Cada metrica es entero 0-100.\n- puntaje = promedio redondeado de todas las metricas.\n- razon: maximo 2 oraciones en espanol, dirigidas al candidato.\n\nFORMATO EXACTO:\n{\n  \"puntaje\": <0-100>,\n  \"correctness\": <0-100>,\n  \"depth\": <0-100>,\n  \"clarity\": <0-100>,\n  \"relevance\": <0-100>,\n  \"examples\": <0-100>,\n  \"razon\": \"<feedback breve>\",\n  \"conceptos_faltantes\": [\"concepto1\", \"concepto2\"]\n}\n\nSi no puedes evaluar, devuelve los campos anteriores con 0 y razon \"Respuesta no valida del modelo.\""
             },
             {
               "content": "=Pregunta: {{ $(\"Edit Fields\").item.json.pregunta ?? \"\" }}\n\nRespuesta del candidato: {{ $json.text ?? $(\"Edit Fields\").item.json.texto }}"
@@ -223,7 +265,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"puntaje\": $(\"Parse model output\").item.json.puntaje, \"razon\": $(\"Parse model output\").item.json.razon, \"texto\": ($json.text ?? $(\"Edit Fields\").item.json.texto), \"continuar\": true } }}",
+        "responseBody": "={{ { \"puntaje\": $(\"Parse model output\").item.json.puntaje, \"razon\": $(\"Parse model output\").item.json.razon, \"metrics\": $(\"Parse model output\").item.json.metrics, \"conceptos_faltantes\": $(\"Parse model output\").item.json.conceptos_faltantes ?? [], \"texto\": ($json.text ?? $(\"Edit Fields\").item.json.texto), \"continuar\": true } }}",
         "options": {
           "responseCode": 200
         }
@@ -332,10 +374,10 @@
           "values": [
             {
               "role": "system",
-              "content": "Eres NOVA, asistente de la Plataforma de Evaluación Técnica.\nGeneras feedback detallado y útil para candidatos al finalizar su prueba.\n\nREGLAS ESTRICTAS:\n1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown.\n2. Calcula el puntaje final sobre 100 usando el conjunto de respuestas (0 a 100).\n3. Incluye fortalezas, debilidades y recomendaciones concretas.\n4. Para CADA pregunta, agrega una descripción breve de la calidad de la respuesta (1 oración).\n5. Usa un tono cercano, claro y profesional.\n\nFORMATO EXACTO:\n{\n  \"puntaje_final\": 78,\n  \"fortalezas\": [\"...\"],\n  \"debilidades\": [\"...\"],\n  \"recomendaciones\": [\"...\"],\n  \"feedback\": \"Texto corto y motivador.\",\n  \"preguntas\": [\n    {\n      \"pregunta\": \"...\",\n      \"puntaje\": 15,\n      \"razon\": \"...\",\n      \"descripcion\": \"...\"\n    }\n  ]\n}"
+              "content": "Eres NOVA, asistente de la Plataforma de Evaluacion Tecnica.\nGenera SOLO feedback GLOBAL (no desglose por pregunta) usando los puntajes y textos ya evaluados.\n\nREGLAS:\n1) Responde SOLO con JSON valido, sin markdown ni texto extra.\n2) puntaje_final: usa score_promedio si viene; si no, promedio de puntajes de respuestas (0-100, entero redondeado).\n3) fortalezas, debilidades, recomendaciones: listas con al menos 2 items cada una. Si no hay datos, crea sugerencias generales pero realistas.\n4) NO incluyas lista por pregunta. No devuelvas el campo \"preguntas\".\n5) feedback: texto breve y motivador (2-3 frases) que resuma nivel y siguientes pasos.\n\nFORMATO EXACTO:\n{\n  \"puntaje_final\": 78,\n  \"fortalezas\": [\"...\"],\n  \"debilidades\": [\"...\"],\n  \"recomendaciones\": [\"...\"],\n  \"feedback\": \"Texto corto y motivador.\"\n}"
             },
             {
-              "content": "=Resultados de la sesión (respuestas):\n{{ JSON.stringify($(\"Edit Fields\").item.json.respuestas ?? []) }}"
+              "content": "Contexto: tecnologia={{ $(\"Edit Fields\").item.json.technology }}, topic={{ $(\"Edit Fields\").item.json.topic }}, dificultad={{ $(\"Edit Fields\").item.json.difficulty }}, puntaje_promedio_cliente={{ $(\"Edit Fields\").item.json.score_promedio }}, nivel_estimado_cliente={{ $(\"Edit Fields\").item.json.nivel_estimado }}.\nRespuestas detalladas (array): {{ JSON.stringify($(\"Edit Fields\").item.json.respuestas_detalladas ?? $(\"Edit Fields\").item.json.respuestas ?? []) }}"
             }
           ]
         },
@@ -529,14 +571,26 @@
             {
               "id": "c2c4f8a1-0c8c-4a5f-8a0e-1a2b3c4d5e6f",
               "name": "puntaje",
-              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return (obj?.puntaje ?? 0); } catch (e) { return 0; } })() }}",
-              "type": "number"
+              "type": "number",
+              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); const fields=['correctness','depth','clarity','relevance','examples']; const avg = Math.round(fields.map(k => Number(obj?.[k] || 0)).reduce((a,b)=>a+b,0) / fields.length); return (obj?.puntaje ?? avg ?? 0); } catch (e) { return 0; } })() }}"
             },
             {
               "id": "a9b1c2d3-e4f5-4a6b-9c0d-1e2f3a4b5c6d",
               "name": "razon",
-              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return (obj?.razon ?? 'Respuesta no valida del modelo.'); } catch (e) { return 'Respuesta no valida del modelo.'; } })() }}",
-              "type": "string"
+              "type": "string",
+              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return (obj?.razon ?? 'Respuesta no valida del modelo.'); } catch (e) { return 'Respuesta no valida del modelo.'; } })() }}"
+            },
+            {
+              "id": "metrics_obj",
+              "name": "metrics",
+              "type": "json",
+              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return { correctness: obj?.correctness ?? 0, depth: obj?.depth ?? 0, clarity: obj?.clarity ?? 0, relevance: obj?.relevance ?? 0, examples: obj?.examples ?? 0 }; } catch (e) { return null; } })() }}"
+            },
+            {
+              "id": "conceptos_faltantes_list",
+              "name": "conceptos_faltantes",
+              "type": "json",
+              "value": "={{ (() => { try { const raw = $('Message a model').item.json.message.content || ''; const match = raw.match(/{[\\s\\S]*}/); const candidate = match ? match[0] : raw; const obj = JSON.parse(candidate); return Array.isArray(obj?.conceptos_faltantes) ? obj.conceptos_faltantes : []; } catch (e) { return []; } })() }}"
             }
           ]
         },
