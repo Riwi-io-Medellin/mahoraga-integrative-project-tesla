@@ -1,4 +1,4 @@
-const STORAGE_KEY = "profilePhoto";
+import { getLoggedInUser, getStoredProfilePhoto, setStoredProfilePhoto } from "../../services/sessionService.js";
 
 export function initPhotoProfile() {
   const modal = document.querySelector(".modalProfile");
@@ -36,7 +36,8 @@ export function initPhotoProfile() {
   backdrop.classList.add("modal-backdrop");
   document.body.appendChild(backdrop);
 
-  const savedPhoto = localStorage.getItem(STORAGE_KEY);
+  const user = getLoggedInUser();
+  const savedPhoto = getStoredProfilePhoto(user);
   syncAvatar(savedPhoto, photoContainer, sidebarAvatar, cameraIcon);
 
   photoContainer.addEventListener("click", (event) => {
@@ -70,7 +71,7 @@ export function initPhotoProfile() {
         return;
       }
 
-      localStorage.setItem(STORAGE_KEY, imageBase64);
+      setStoredProfilePhoto(user, imageBase64);
       syncAvatar(imageBase64, photoContainer, sidebarAvatar, cameraIcon);
       document.dispatchEvent(new CustomEvent("profile-photo-updated", { detail: { image: imageBase64 } }));
     };
@@ -85,7 +86,7 @@ export function initPhotoProfile() {
 
   actionDelete.addEventListener("click", () => {
     closePhotoActionModal(actionBackdrop, actionModal);
-    localStorage.removeItem(STORAGE_KEY);
+    setStoredProfilePhoto(user, "");
     syncAvatar("", photoContainer, sidebarAvatar, cameraIcon);
     document.dispatchEvent(new CustomEvent("profile-photo-updated", { detail: { image: "" } }));
   });

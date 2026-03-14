@@ -19,6 +19,42 @@
     visibility: visible;
 }
 
+.login-loader {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 20000;
+}
+
+.login-loader.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.login-loader__logo {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    animation: login-spin 1.4s linear infinite;
+}
+
+@keyframes login-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-loader__logo {
+        animation: none;
+    }
+}
+
 .modal-overlay {
     position: absolute;
     top: 0;
@@ -369,4 +405,81 @@
     background: rgba(40, 167, 69, 0.1);
     border: 1px solid rgba(40, 167, 69, 0.3);
     color: #28a745;
+}
+
+@media (max-width: 700px) {
+    .auth-wrapper {
+        width: min(94vw, 520px);
+        height: auto;
+        max-height: 92vh;
+        flex-direction: column;
+    }
+
+    .brand-panel,
+    .forms-panel {
+        width: 100%;
+    }
+
+    .brand-panel {
+        padding: 32px 24px;
+    }
+
+    .brand-logo {
+        margin-bottom: 24px;
+    }
+
+    .logo-circle {
+        width: 140px;
+        height: 140px;
+    }
+
+    .logoLogin {
+        width: 130px;
+    }
+
+    .brand-logo h1 {
+        font-size: 28px;
+        letter-spacing: 2px;
+    }
+
+    .brand-tagline {
+        margin-bottom: 20px;
+    }
+
+    .form-section {
+        position: relative;
+        height: auto;
+        padding: 32px 24px 40px;
+        transform: none;
+    }
+
+    .modal-close {
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (max-width: 420px) {
+    .logo-circle {
+        width: 110px;
+        height: 110px;
+    }
+
+    .logoLogin {
+        width: 100px;
+    }
+
+    .form-header h2 {
+        font-size: 24px;
+    }
+
+    .input-group input {
+        padding: 14px 16px;
+    }
+
+    .btn-primary {
+        padding: 14px;
+    }
 }

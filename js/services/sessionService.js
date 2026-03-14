@@ -46,8 +46,23 @@ export function requireLoggedInUser(redirectPath = "../index.html") {
   return user;
 }
 
-export function getStoredProfilePhoto() {
-  return localStorage.getItem(PROFILE_PHOTO_KEY) || "";
+export function getStoredProfilePhoto(user) {
+  const key = getProfilePhotoKey(user);
+  return key ? localStorage.getItem(key) || "" : "";
+}
+
+export function setStoredProfilePhoto(user, image) {
+  const key = getProfilePhotoKey(user);
+
+  if (!key) {
+    return;
+  }
+
+  if (image) {
+    localStorage.setItem(key, image);
+  } else {
+    localStorage.removeItem(key);
+  }
 }
 
 export function redirectLoggedInUser(targetPath = "./pages/dashboard.html") {
@@ -134,4 +149,18 @@ function normalizeLoggedInUser(user) {
     id_level: Number(user?.id_level || 1),
     id_language: Number(user?.id_language || 1),
   };
+}
+
+function getProfilePhotoKey(user) {
+  if (!user) {
+    return null;
+  }
+
+  const identifier = user?.id_user || user?.id || user?.email || user?.user_name;
+
+  if (!identifier) {
+    return null;
+  }
+
+  return `${PROFILE_PHOTO_KEY}:${identifier}`;
 }
