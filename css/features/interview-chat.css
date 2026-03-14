@@ -235,6 +235,42 @@ body {
   border: 2px solid #00e6a2;
   background: rgba(0, 230, 162, 0.08);
   color: #00e6a2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.voice-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.voice-button.is-recording {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.18);
+  color: #ffeaea;
+  box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.14);
+  animation: pulse-mic 1.2s ease-in-out infinite;
+}
+
+.voice-button.is-busy {
+  opacity: 0.7;
+}
+
+@keyframes pulse-mic {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.2);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+  }
 }
 
 .answer-label {

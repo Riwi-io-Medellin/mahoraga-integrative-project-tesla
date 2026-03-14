@@ -261,6 +261,21 @@ export const getInterviewQuestions = async ({
             }
         }
 
+        // Si no hay resultados y se estaba filtrando por id_user, intenta sin ese filtro.
+        if (!response.rows.length && id_user) {
+            for (const [currentLevel, currentLanguage] of fallbackChain) {
+                response = await queryInterviewQuestions(
+                    currentLevel,
+                    currentLanguage,
+                    topicIds,
+                    null
+                )
+                if (response.rows.length) {
+                    break
+                }
+            }
+        }
+
         const rankedQuestions = rankInterviewQuestions(
             response.rows,
             buildInterviewKeywords(technology, topic)
@@ -288,13 +303,13 @@ async function queryInterviewQuestions(id_level, id_language, topicIds = [], id_
             AND ($2::int IS NULL OR qt.id_language = $2)
             AND (cardinality($3::int[]) = 0 OR q.id_topic = ANY($3::int[]))
             AND (
-                $4::uuid IS NULL
+                $4::text IS NULL
                 OR NOT EXISTS (
                     SELECT 1
                     FROM question_instance qi
                     JOIN interview_session s ON s.id_session = qi.id_session
                     WHERE qi.id_question = q.id_question
-                        AND s.id_user = $4
+                        AND s.id_user::text = $4::text
                 )
             )
             AND qt.question_text IS NOT NULL
