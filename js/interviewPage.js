@@ -9,7 +9,7 @@ import {
   saveInterviewContext,
   saveInterviewSession,
 } from "./services/interviewService.js";
-import { getN8nExtractionSnapshot, sendN8nAnswer, buildN8nAnswerPayload, ensureInterviewSessionId } from "./services/n8nBridge.js";
+import { getN8nExtractionSnapshot, sendN8nAnswer, buildN8nAnswerPayload, ensureInterviewSessionId, extractAnswersAsKeyValuePairs, extractDetailedAnswers, buildInterviewAnalysisPrompt } from "./services/n8nBridge.js";
 import {
   getInterviewLanguageName,
   getInterviewLanguageOptions,
@@ -500,51 +500,114 @@ async function renderInterviewSummary(session, context) {
   session.summary = summary;
   saveInterviewSession(session);
 
+  // Renderar UI base primero
+  document.getElementById("questionText").textContent = "Interview completed";
+  document.getElementById("questionLevel").textContent = "summary";
+  document.getElementById("answerInput").disabled = true;
+  document.getElementById("submitAnswer").hidden = true;
+  document.getElementById("nextQuestion").hidden = true;
+
+  let n8nScore = null;
+  let n8nFeedback = null;
+
   try {
     const snapshot = getN8nExtractionSnapshot();
     const ensured = await ensureInterviewSessionId({ context: snapshot.context, user: snapshot.user });
     const id_session = ensured?.id_session || snapshot?.context?.id_session;
 
     if (id_session) {
-      const respuestas = session.questions.map((question, index) => {
-        const entry = session.answers[index] || {};
-        return {
-          pregunta: question?.question_text ?? "",
-          respuesta: entry.answer ?? "",
-          puntaje: entry.score ?? entry.puntaje ?? 0,
-          razon: entry.reason ?? entry.razon ?? "",
-        };
+      // Obtener respuestas en formato clave-valor y detallado
+      const respuestasObjeto = extractAnswersAsKeyValuePairs({ session, context });
+      const respuestasDetalladas = extractDetailedAnswers({ session, context });
+
+      // Generar prompt mejorado para análisis general
+      const promptAnalisis = buildInterviewAnalysisPrompt({
+        technology: context?.technology ?? "unknown",
+        topic: context?.topic ?? "unknown",
+        difficulty: context?.difficulty ?? "beginner",
+        respuestasObjeto,
+        respuestasDetalladas,
+        scorePromedio: summary.score,
+        nivelEstimado: summary.estimatedLevel,
+        language: context?.languageId ?? 1,
       });
 
       const payload = {
         id_session,
         id_user: snapshot?.user?.id_user || null,
         is_final: true,
-        respuestas,
+        technology: context?.technology ?? "unknown",
+        topic: context?.topic ?? "unknown",
+        difficulty: context?.difficulty ?? "beginner",
+        language: context?.languageId ?? 1,
+        totalQuestions: session.questions.length,
+        scorePromedio: summary.score,
+        nivelEstimado: summary.estimatedLevel,
+        respuestas: respuestasObjeto,
+        respuestasDetalladas,
+        prompt: promptAnalisis,
       };
 
-      const feedbackResponse = await sendN8nAnswer({ payload });
+      console.log("📊 Enviando análisis completo a n8n:", {
+        id_session,
+        technology: context?.technology,
+        topic: context?.topic,
+        totalQuestions: session.questions.length,
+        scorePromedio: summary.score,
+        nivelEstimado: summary.estimatedLevel,
+        respuestasCount: Object.keys(respuestasObjeto).length,
+        hasPrompt: Boolean(promptAnalisis),
+      });
 
-      if (feedbackResponse?.feedback) {
-        document.getElementById("feedbackText").textContent = feedbackResponse.feedback;
+      try {
+        const feedbackResponse = await sendN8nAnswer({ payload });
+
+        // Procesar respuesta de n8n
+        if (feedbackResponse) {
+          // Si la respuesta es un JSON con score y feedback
+          if (feedbackResponse.score !== undefined && feedbackResponse.feedback) {
+            n8nScore = Number(feedbackResponse.score);
+            n8nFeedback = feedbackResponse.feedback;
+            console.log("✅ Análisis recibido de n8n:", { score: n8nScore, feedbackLength: n8nFeedback.length });
+          }
+          // Si es un string directo (feedback)
+          else if (typeof feedbackResponse === 'string') {
+            n8nFeedback = feedbackResponse;
+          }
+          // Si tiene propiedad feedback
+          else if (feedbackResponse.feedback) {
+            n8nFeedback = feedbackResponse.feedback;
+            if (feedbackResponse.score) {
+              n8nScore = Number(feedbackResponse.score);
+            }
+          }
+          // Si tiene analisisGeneral
+          else if (feedbackResponse.analisisGeneral) {
+            n8nFeedback = feedbackResponse.analisisGeneral;
+            if (feedbackResponse.score) {
+              n8nScore = Number(feedbackResponse.score);
+            }
+          }
+        }
+      } catch (n8nError) {
+        console.warn("⚠️ Error al obtener feedback de n8n:", n8nError);
       }
     } else {
       console.warn("No se pudo resolver id_session para n8n.");
     }
   } catch (error) {
-    console.error("No se pudo obtener feedback de n8n:", error);
+    console.error("❌ Error en análisis de entrevista:", error);
   }
 
-  document.getElementById("questionText").textContent = "Interview completed";
-  document.getElementById("questionLevel").textContent = "summary";
-  document.getElementById("questionPoints").textContent = `${summary.score} avg`;
+  // Renderizar los resultados (usando n8n si está disponible, sino summary)
+  const finalScore = n8nScore !== null ? n8nScore : summary.score;
+  const finalFeedback = n8nFeedback || summary.feedback;
+
+  document.getElementById("questionPoints").textContent = `${finalScore} pts`;
   document.getElementById("feedbackBadge").textContent = "Completed";
-  document.getElementById("feedbackScore").textContent = String(summary.score);
+  document.getElementById("feedbackScore").textContent = String(finalScore);
   document.getElementById("feedbackLevel").textContent = summary.estimatedLevel;
-  document.getElementById("feedbackText").textContent = summary.feedback;
-  document.getElementById("answerInput").disabled = true;
-  document.getElementById("submitAnswer").hidden = true;
-  document.getElementById("nextQuestion").hidden = true;
+  document.getElementById("feedbackText").textContent = finalFeedback;
 }
 
 function renderFatalState(message) {

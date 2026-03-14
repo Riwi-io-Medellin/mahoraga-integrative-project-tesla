@@ -2,6 +2,61 @@ import { API_BASE_URL } from "./apiConfig.js";
 import { getLoggedInUser } from "./sessionService.js";
 import { getInterviewContext, getInterviewSession } from "./interviewService.js";
 
+/**
+ * Extrae las respuestas en formato clave-valor
+ * Clave: Pregunta (texto)
+ * Valor: Respuesta del usuario (texto)
+ * @param {Object} session - Sesión de entrevista
+ * @param {Object} context - Contexto de la entrevista
+ * @returns {Object} Objeto con preguntas como claves y respuestas como valores
+ */
+export function extractAnswersAsKeyValuePairs({ session, context }) {
+  const respuestasObjeto = {};
+
+  if (!session?.questions || !session?.answers) {
+    return respuestasObjeto;
+  }
+
+  session.questions.forEach((question, index) => {
+    const entry = session.answers[index] || {};
+    const preguntaTexto = question?.question_text ?? `Pregunta ${index + 1}`;
+    const respuestaTexto = entry.answer ?? "";
+
+    respuestasObjeto[preguntaTexto] = respuestaTexto;
+  });
+
+  return respuestasObjeto;
+}
+
+/**
+ * Extrae las respuestas en formato detallado con metadatos
+ * @param {Object} session - Sesión de entrevista
+ * @param {Object} context - Contexto de la entrevista
+ * @returns {Array} Array de objetos con detalles de cada respuesta
+ */
+export function extractDetailedAnswers({ session, context }) {
+  const respuestasDetalladas = [];
+
+  if (!session?.questions || !session?.answers) {
+    return respuestasDetalladas;
+  }
+
+  session.questions.forEach((question, index) => {
+    const entry = session.answers[index] || {};
+    respuestasDetalladas.push({
+      orden: index + 1,
+      pregunta: question?.question_text ?? `Pregunta ${index + 1}`,
+      respuesta: entry.answer ?? "",
+      puntaje: entry.score ?? entry.puntaje ?? 0,
+      razon: entry.reason ?? entry.razon ?? "",
+      id_question: question?.id_question ?? null,
+      id_question_instance: question?.id_question_instance ?? null,
+    });
+  });
+
+  return respuestasDetalladas;
+}
+
 export function extractInterviewAnswers({ session, context }) {
   const answers = (session?.answers || []).filter(Boolean);
 
@@ -124,6 +179,104 @@ export async function sendN8nAnswer({ payload, audioBlob } = {}) {
   }
 
   return isJson ? await response.json() : await response.arrayBuffer();
+}
+
+/**
+ * Genera un prompt detallado para que n8n/IA analice la entrevista de forma general
+ * @param {Object} params - Parámetros para generar el prompt
+ * @returns {string} Prompt estructurado para análisis de IA
+ */
+export function buildInterviewAnalysisPrompt({
+  technology,
+  topic,
+  difficulty,
+  respuestasObjeto,
+  respuestasDetalladas,
+  scorePromedio,
+  nivelEstimado,
+  language = "es",
+} = {}) {
+  const isSpanish = language === "es" || language === 1;
+
+  if (isSpanish) {
+    return `
+## Análisis General de Entrevista Técnica
+
+### Contexto
+- **Tecnología Evaluada:** ${technology}
+- **Tema:** ${topic}
+- **Dificultad:** ${difficulty}
+- **Puntaje Promedio Inicial:** ${scorePromedio}%
+- **Nivel Estimado Inicial:** ${nivelEstimado}
+
+### Preguntas y Respuestas Completas
+${JSON.stringify(respuestasObjeto, null, 2)}
+
+### Instrucciones de Análisis - RETORNA SOLO JSON
+
+Analiza el conjunto COMPLETO de preguntas y respuestas de forma hoística (NO respuesta por respuesta).
+
+**RETORNA ÚNICAMENTE UN OBJETO JSON (sin texto adicional) con esta estructura exacta:**
+
+\`\`\`json
+{
+  "score": 75,
+  "feedback": "Análisis general de 2-3 párrafos que incluya: nivel real del candidato, fortalezas identificadas con ejemplos específicos, áreas de mejora concretas, y recomendaciones para mejorar."
+}
+\`\`\`
+
+**Criterios de Calificación (1-100):**
+- 85-100: Dominio avanzado, respuestas profundas, coherentes y con vocabulario técnico adecuado
+- 65-84: Dominio intermedio, buena comprensión pero con áreas por mejorar
+- 45-64: Dominio básico, respuestas superficiales o incompletas
+- 0-44: Conocimiento muy limitado, respuestas confusas o incorrectas
+
+**IMPORTANTE:**
+- NO evalúes cada respuesta por separado
+- Analiza la coherencia y consistencia del conocimiento
+- Proporciona UN ÚNICO feedback general basado en patrones observados
+- Retorna SOLO el JSON válido, sin explicaciones, texto adicional o markdown
+`;
+  }
+
+  return `
+## Technical Interview General Analysis
+
+### Context
+- **Technology Evaluated:** ${technology}
+- **Topic:** ${topic}
+- **Difficulty:** ${difficulty}
+- **Initial Average Score:** ${scorePromedio}%
+- **Estimated Level:** ${nivelEstimado}
+
+### Complete Questions and Answers
+${JSON.stringify(respuestasObjeto, null, 2)}
+
+### Analysis Instructions - RETURN ONLY JSON
+
+Analyze the COMPLETE set of questions and answers holistically (NOT answer by answer).
+
+**RETURN ONLY A JSON OBJECT (no additional text) with this exact structure:**
+
+\`\`\`json
+{
+  "score": 75,
+  "feedback": "General analysis of 2-3 paragraphs including: candidate's real level, identified strengths with specific examples, concrete areas for improvement, and recommendations to enhance performance."
+}
+\`\`\`
+
+**Scoring Criteria (1-100):**
+- 85-100: Advanced mastery, deep and coherent responses with appropriate technical vocabulary
+- 65-84: Intermediate mastery, good understanding but with areas for improvement
+- 45-64: Basic mastery, superficial or incomplete responses
+- 0-44: Very limited knowledge, confused or incorrect responses
+
+**IMPORTANT:**
+- DO NOT evaluate each response separately
+- Analyze coherence and consistency of knowledge
+- Provide ONE SINGLE general feedback based on observed patterns
+- Return ONLY valid JSON, no explanations, additional text or markdown
+`;
 }
 
 export function getN8nExtractionSnapshot() {

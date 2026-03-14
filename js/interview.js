@@ -231,13 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderDetailedInterviewSummary({ detailed, summary, session });
-    return;
-
-    appendMessage(
-      "assistant",
-      `<strong>${t("interviewer.label")}:</strong> Resultado: ${summary.score} pts • ${summary.estimatedLevel}.`,
-    );
-    appendMessage("assistant", summary.feedback);
   }
 
   function renderDetailedInterviewSummary({ detailed, summary, session }) {
