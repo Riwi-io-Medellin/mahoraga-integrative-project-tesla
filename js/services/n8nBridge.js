@@ -94,6 +94,9 @@ export function buildN8nAnswerPayload({
     id_question,
     pregunta,
     texto,
+    // Aliases to satisfacer validaciones en n8n (en caso de que espere keys en inglés)
+    question: pregunta,
+    answer: texto,
     audio,
     mode,
   };
@@ -103,8 +106,14 @@ export async function ensureInterviewSessionId({ context, user } = {}) {
   const resolvedContext = context || getInterviewContext();
   const resolvedUser = user || getLoggedInUser();
 
-  if (resolvedContext?.id_session) {
-    return { id_session: resolvedContext.id_session, created: false };
+  const existingSessionId =
+    resolvedContext?.id_session ||
+    resolvedContext?.sessionId ||
+    resolvedContext?.session_id ||
+    null;
+
+  if (existingSessionId) {
+    return { id_session: existingSessionId, created: false };
   }
 
   if (!resolvedUser?.id_user) {
@@ -133,8 +142,21 @@ export async function ensureInterviewSessionId({ context, user } = {}) {
   const data = await response.json();
   const interview = data?.interview || data?.session || data;
 
+  const newId =
+    interview?.id_session ??
+    interview?.sessionId ??
+    interview?.id ??
+    null;
+
+  // Si lo obtenemos, lo guardamos de vuelta en el contexto para no recrear sesiones
+  if (newId && resolvedContext) {
+    resolvedContext.id_session = newId;
+    resolvedContext.sessionId = newId;
+    saveInterviewContext(resolvedContext);
+  }
+
   return {
-    id_session: interview?.id_session ?? interview?.id ?? null,
+    id_session: newId,
     created: true,
     raw: data,
   };
@@ -144,6 +166,14 @@ export async function sendN8nAnswer({ payload, audioBlob } = {}) {
   if (!payload) {
     throw new Error("missing_payload");
   }
+
+  // Debug: Log payload before sending
+  console.log("[n8nBridge] Final payload being sent:", JSON.stringify(payload, null, 2));
+  console.log("[n8nBridge] Payload keys:", Object.keys(payload));
+  console.log("[n8nBridge] id_session value:", payload.id_session);
+  console.log("[n8nBridge] id_user value:", payload.id_user);
+  console.log("[n8nBridge] order_num value:", payload.order_num);
+  console.log("[n8nBridge] id_question value:", payload.id_question);
 
   let response;
 
@@ -161,11 +191,20 @@ export async function sendN8nAnswer({ payload, audioBlob } = {}) {
       body: formData,
     });
   } else {
-    response = await fetch(`${API_BASE_URL}/voice/feedback`, {
+    const fetchOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+    };
+    
+    console.log("[n8nBridge] Fetch options:", {
+      method: fetchOptions.method,
+      url: `${API_BASE_URL}/voice/feedback`,
+      headers: fetchOptions.headers,
+      bodyPreview: typeof payload === 'string' ? payload.substring(0, 200) : JSON.stringify(payload).substring(0, 200)
     });
+    
+    response = await fetch(`${API_BASE_URL}/voice/feedback`, fetchOptions);
   }
 
   const contentType = response.headers.get("content-type") || "";

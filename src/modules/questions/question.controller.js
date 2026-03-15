@@ -178,13 +178,22 @@ export const newInterviewQuestionReq = async (req, res) => {
 }
 
 export const newQuestionAnsweredReq = async (req, res) =>{
-    const { id_user, answer, score, feedback, answered_at } = req.body
+    console.log('[answered] incoming body', req.body)
+
+    const {
+        id_user,
+        id_question_instance,
+        answer,
+        score,
+        feedback = 'Sin feedback',
+        answered_at
+    } = req.body
     const missingFields = [];
 
     if (!id_user) missingFields.push('id_user')
+    if (!id_question_instance) missingFields.push('id_question_instance')
     if (!answer) missingFields.push('answer')
-    if (!score) missingFields.push('score')
-    if (!feedback) missingFields.push('feedback')
+    if (score === undefined || score === null) missingFields.push('score')
     if (!answered_at) missingFields.push('answered_at')
 
     if (missingFields.length > 0) {
@@ -194,7 +203,15 @@ export const newQuestionAnsweredReq = async (req, res) =>{
         })
     }
     try{
-        const newAnswered = await newQuestionAnswered(id_user, answer, score, feedback, answered_at)
+        const safeFeedback = (feedback ?? '').toString().trim() || 'Sin feedback'
+        const newAnswered = await newQuestionAnswered(
+            id_user,
+            id_question_instance,
+            answer,
+            score,
+            safeFeedback,
+            answered_at
+        )
         res.status(201).json({
             message: `the new answered question was created `,
             questionanswered: newAnswered

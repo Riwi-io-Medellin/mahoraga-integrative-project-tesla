@@ -11,10 +11,15 @@ function validateJsonPayload(body) {
   }
   const missing = []
 
+  console.log('[voice] validateJsonPayload - full body:', JSON.stringify(body, null, 2))
+  console.log('[voice] validateJsonPayload - body keys:', Object.keys(body || {}))
+
   if (!body?.id_session) missing.push('id_session')
   if (!body?.id_user) missing.push('id_user')
   if (!body?.order_num) missing.push('order_num')
   if (!body?.id_question) missing.push('id_question')
+
+  console.log('[voice] validateJsonPayload - missing fields:', missing)
 
   return missing
 }
@@ -22,9 +27,27 @@ function validateJsonPayload(body) {
 export const voiceFeedbackReq = async (req, res) => {
   const multipart = isMultipartRequest(req)
 
+  // Debug: log payload received to trace missing fields from frontend/n8n bridge
+  console.log('[voice] === INCOMING REQUEST ===');
+  console.log('[voice] content-type:', req.headers['content-type']);
+  console.log('[voice] content-length:', req.headers['content-length']);
+  
+  if (!multipart) {
+    console.log('[voice] JSON body received:', JSON.stringify(req.body, null, 2));
+    console.log('[voice] Body type:', typeof req.body);
+    console.log('[voice] Body is array?', Array.isArray(req.body));
+    console.log('[voice] Body keys:', Object.keys(req.body || {}));
+  } else {
+    console.log('[voice] incoming multipart payload (headers only):', {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length'],
+    })
+  }
+
   if (!multipart) {
     const missingFields = validateJsonPayload(req.body)
     if (missingFields.length > 0) {
+      console.warn('[voice] missing required fields:', missingFields)
       return res.status(400).json({
         error: 'missing_required_fields',
         mensaje: 'Faltan campos obligatorios en la solicitud.',

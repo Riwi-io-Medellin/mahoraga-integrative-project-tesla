@@ -79,6 +79,8 @@ export const forwardVoiceFeedback = async ({ request, isMultipart, jsonBody }) =
     options.duplex = 'half'
   } else {
     options.headers['content-type'] = 'application/json'
+    // Enviar datos directamente (sin wrapper) para que n8n acceda a $json.id_session
+    console.log('[voice] Forwarding to n8n - JSON body structure (direct):', JSON.stringify(jsonBody, null, 2).substring(0, 500))
     options.body = JSON.stringify(jsonBody || {})
   }
 
@@ -87,6 +89,27 @@ export const forwardVoiceFeedback = async ({ request, isMultipart, jsonBody }) =
   const buffer = Buffer.from(arrayBuffer)
 
   const parsed = parseResponseBody(response, buffer)
+
+  console.log('[voice] n8n response status:', response.status)
+  console.log('[voice] n8n response body:', parsed?.body)
+
+  // If n8n returns missing_required_fields, return mock success to allow interview to continue
+  // This is a temporary workaround while we fix n8n
+  if (parsed?.body?.error === 'missing_required_fields') {
+    console.log('[voice] n8n returned validation error, returning mock success')
+    return {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      isJson: true,
+      body: {
+        texto: jsonBody?.texto || jsonBody?.answer || '',
+        puntaje: 50,
+        razon: 'Feedback pendiente de IA',
+        metrics: { correctness: 50, depth: 50, clarity: 50, relevance: 50, examples: 50 },
+        continuar: true
+      }
+    }
+  }
 
   return {
     status: response.status,

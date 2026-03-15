@@ -107,6 +107,48 @@ export async function saveInterviewQuestionInstances({ id_session, questions }) 
   return response.json();
 }
 
+export async function saveQuestionAnswered({ id_user, id_question_instance, answer, score, feedback, answered_at }) {
+  if (!id_user || !id_question_instance || !answer || score === undefined || score === null || !answered_at) {
+    throw new Error("missing_required_fields");
+  }
+
+  const safeFeedback = feedback && String(feedback).trim().length ? String(feedback) : "Sin feedback";
+
+  const payload = { id_user, id_question_instance, answer, score, feedback: safeFeedback, answered_at };
+
+  const response = await fetch(`${API_BASE_URL}/questions/answered`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Could not save answered question.");
+  }
+
+  return response.json();
+}
+
+export async function endInterviewSession({ id_session, date_fin }) {
+  if (!id_session || !date_fin) {
+    throw new Error("missing_id_session_or_date");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/interview/${id_session}/end`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date_fin }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Could not end interview session.");
+  }
+
+  return response.json();
+}
+
 export async function evaluateInterviewSession({ questions, answers, context }) {
   const validAnswers = answers.filter(Boolean);
   const answerScores = validAnswers.map((answerEntry) => {

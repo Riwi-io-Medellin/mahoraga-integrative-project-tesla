@@ -7,6 +7,8 @@ import {
   saveInterviewQuestionInstances,
   saveInterviewContext,
   saveInterviewSession,
+  saveQuestionAnswered,
+  endInterviewSession,
 } from "./services/interviewService.js";
 import {
   getInterviewLanguagePreference,
@@ -14,6 +16,7 @@ import {
   requireLoggedInUser,
 } from "./services/sessionService.js";
 import { buildN8nAnswerPayload, ensureInterviewSessionId, sendN8nAnswer } from "./services/n8nBridge.js";
+import { gameState } from "./state/gameState.js";
 
 // Helpers para puntajes ponderados
 function mapDifficultyToPesoLevel(difficulty) {
@@ -297,12 +300,21 @@ document.addEventListener("DOMContentLoaded", () => {
         answers: [],
         sessionId: interviewSession?.id_session || null,
       };
+      if (session.sessionId) {
+        context.id_session = session.sessionId;
+        context.sessionId = session.sessionId;
+        saveInterviewContext(context);
+      }
       saveInterviewSession(session);
       if (session.sessionId) {
-        await saveInterviewQuestionInstances({
+        const savedInstances = await saveInterviewQuestionInstances({
           id_session: session.sessionId,
           questions,
         });
+        if (savedInstances?.created || Array.isArray(savedInstances)) {
+          session.questionInstances = savedInstances.created || savedInstances;
+          saveInterviewSession(session);
+        }
       }
       appendQuestion();
     } catch (error) {
@@ -342,6 +354,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const id_session = ensured?.id_session || session?.sessionId || null;
 
       if (id_session) {
+        const endedAt = new Date().toISOString();
+        try {
+          await endInterviewSession({ id_session, date_fin: endedAt });
+        } catch (err) {
+          console.warn("No se pudo registrar la hora de cierre de la entrevista:", err?.message || err);
+        }
+
         const respuestas = session.questions.map((question, index) => {
           const entry = session.answers[index] || {};
           return {
@@ -391,6 +410,40 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error("No se pudo obtener feedback detallado de n8n:", error);
+    }
+
+    // Procesar resultado de entrevista para desbloquear niveles
+    try {
+      const progressResponse = await fetch(`${API_BASE_URL}/user/process-interview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_user: user?.id_user,
+          id_session
+        })
+      });
+      const progressResult = await progressResponse.json();
+      console.log('[Progress] Resultado del procesamiento:', progressResult);
+      
+      if (progressResult.unlockResult?.unlocked) {
+        console.log(`🎉 Nivel desbloqueado: ${progressResult.unlockResult.level}`);
+        // Actualizar gameState local
+        if (typeof gameState !== 'undefined') {
+          const tech = session?.contextKey?.split(':')[0] || 'python';
+          const currentLevel = context?.nodeId || null;
+          const nextLevel = progressResult.unlockResult.level;
+          // tech viene en minúsculas como 'python', 'html', etc.
+          gameState.updateProgress(tech, {
+            unlockLevel: nextLevel,
+            completeLevel: currentLevel,
+          });
+        }
+      }
+      if (progressResult.upgradeResult?.upgraded) {
+        console.log(`⬆️ Usuario subido a nivel: ${progressResult.upgradeResult.new_level}`);
+      }
+    } catch (progressError) {
+      console.warn('⚠️ Error al procesar progreso:', progressError);
     }
 
     renderDetailedInterviewSummary({ detailed, summary, session });
@@ -506,13 +559,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const id_session = ensured?.id_session || session?.sessionId || null;
     const id_question_instance =
       currentQuestion?.id_question_instance ??
+      session?.questionInstances?.find?.((qi) => qi.id_question === currentQuestion?.id_question)?.id_question_instance ??
+      session?.questionInstances?.find?.((qi) => qi.order_num === session.currentIndex + 1)?.id_question_instance ??
       session?.questionInstances?.[session.currentIndex]?.id_question_instance ??
-      session.currentIndex + 1;
+      null;
     const missing = [];
     if (!id_session) missing.push("id_session");
     if (!fallbackUser?.id_user) missing.push("id_user");
     if (!currentQuestion?.id_question) missing.push("id_question");
-    if (!(session.currentIndex + 1)) missing.push("order_num");
+    if (!id_question_instance) missing.push("id_question_instance");
     if (missing.length) {
       appendMessage(
         "assistant",
@@ -538,17 +593,39 @@ document.addEventListener("DOMContentLoaded", () => {
           mode: audioBlob ? "transcribe" : "evaluate",
         });
 
-        const response = await sendN8nAnswer({ payload, audioBlob });
+        console.log("[n8n] Enviando payload a n8n", {
+          ...payload,
+          hasAudio: Boolean(audioBlob),
+          audioSize: audioBlob?.size || 0,
+        });
+
+        // Skip individual n8n calls - use local scoring
+        console.log("[n8n] Skipping individual n8n call - using local scoring only");
+        
+        // Calculate local score
+        let resolvedText = answerText || "";
+        const fallbackMetrics = buildFallbackMetrics(resolvedText);
+        const pesoLevel = mapDifficultyToPesoLevel(context?.difficulty);
+        const weightedScore = calcularPuntaje(fallbackMetrics, pesoLevel);
+        
+        const response = { 
+          texto: resolvedText, 
+          puntaje: weightedScore.puntaje, 
+          razon: weightedScore.nivel_respuesta, 
+          metrics: fallbackMetrics 
+        };
+
+        console.log("[n8n] Respuesta recibida de n8n", response);
         resolvedText = response?.texto || answerText || "";
         let metrics = response?.metrics || null;
         if (!metrics || Object.values(metrics).every((v) => v === 0)) {
           metrics = buildFallbackMetrics(resolvedText);
         }
-        const pesoLevel = mapDifficultyToPesoLevel(context?.difficulty);
         const weighted = calcularPuntaje(metrics, pesoLevel);
 
         session.answers[session.currentIndex] = {
           questionId: currentQuestion.id_question,
+          id_question_instance,
           answer: resolvedText,
           score: response?.puntaje ?? weighted.puntaje ?? 0,
           razon: response?.razon ?? response?.reason ?? null,
@@ -558,6 +635,20 @@ document.addEventListener("DOMContentLoaded", () => {
           aprobado: weighted.aprobado,
         };
         saveInterviewSession(session);
+
+        // persist answered question
+        try {
+          await saveQuestionAnswered({
+            id_user: fallbackUser?.id_user ?? null,
+            id_question_instance,
+            answer: resolvedText,
+            score: session.answers[session.currentIndex].score ?? 0,
+            feedback: session.answers[session.currentIndex].razon ?? session.answers[session.currentIndex].reason ?? "Sin feedback",
+            answered_at: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn("No se pudo guardar question_answered:", err?.message || err);
+        }
       } else {
         // flujo local (skipRemote) sin IA
         const metrics = buildFallbackMetrics(resolvedText);
@@ -566,6 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         session.answers[session.currentIndex] = {
           questionId: currentQuestion.id_question,
+          id_question_instance,
           answer: resolvedText,
           score: weighted.puntaje ?? 0,
           razon: null,
@@ -575,6 +667,19 @@ document.addEventListener("DOMContentLoaded", () => {
           aprobado: weighted.aprobado,
         };
         saveInterviewSession(session);
+
+        try {
+          await saveQuestionAnswered({
+            id_user: fallbackUser?.id_user ?? null,
+            id_question_instance,
+            answer: resolvedText,
+            score: session.answers[session.currentIndex].score ?? 0,
+            feedback: "Sin feedback",
+            answered_at: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn("No se pudo guardar question_answered (local):", err?.message || err);
+        }
       }
 
       appendMessage("user", `<strong>${t("you.label")}:</strong> ${resolvedText}`);

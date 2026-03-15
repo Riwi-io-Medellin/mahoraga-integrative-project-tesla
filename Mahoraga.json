@@ -32,109 +32,109 @@
             {
               "id": "ec5729cb-4c0f-4b39-bcdc-51d955c13002",
               "name": "id_session",
-              "value": "={{ $json.body.id_session }}",
+              "value": "={{ $json.id_session }}",
               "type": "number"
             },
             {
               "id": "9aeabf23-90b6-4064-bfad-8eaed58993a5",
               "name": "id_question_instance",
-              "value": "={{ $json.body.id_question_instance }}",
+              "value": "={{ $json.id_question_instance }}",
               "type": "number"
             },
             {
               "id": "c8a77140-216e-4b9a-9b4d-aa5238358c36",
               "name": "id_user",
-              "value": "={{ $json.body.id_user }}",
+              "value": "={{ $json.id_user }}",
               "type": "string"
             },
             {
               "id": "477e0502-e190-484a-b4a5-f8dd325c3396",
               "name": "order_num",
-              "value": "={{ $json.body.order_num }}",
+              "value": "={{ $json.order_num }}",
               "type": "number"
             },
             {
               "id": "de1050fc-0a5f-4096-b826-8abb2150d276",
               "name": "id_question",
-              "value": "={{ $json.body.id_question }}",
+              "value": "={{ $json.id_question }}",
               "type": "number"
             },
             {
               "id": "004d05cc-0edd-49e2-a4cd-967cf66f2338",
               "name": "audio",
-              "value": "={{ $json.body.audio }}",
+              "value": "={{ $json.audio }}",
               "type": "string"
             },
             {
               "id": "6035373c-0ffd-4abc-ab32-7f2d0020b173",
               "name": "texto",
-              "value": "={{ $json.body.texto }}",
+              "value": "={{ $json.texto ?? $json.body?.texto ?? '' }}",
               "type": "string"
             },
             {
               "id": "is_final_flag",
               "name": "is_final",
-              "value": "={{ $json.body.is_final ?? $json.body.final ?? false }}",
+              "value": "={{ $json.is_final ?? $json.body?.is_final ?? $json.body?.final ?? false }}",
               "type": "boolean"
             },
             {
               "id": "respuestas_list",
               "name": "respuestas",
-              "value": "={{ $json.body.respuestas ?? [] }}",
+              "value": "={{ $json.respuestas ?? $json.body?.respuestas ?? [] }}",
               "type": "json"
             },
             {
               "id": "mode_flag",
               "name": "mode",
-              "value": "={{ $json.body.mode ?? '' }}",
+              "value": "={{ $json.mode ?? $json.body?.mode ?? '' }}",
               "type": "string"
             },
             {
               "id": "pregunta_text",
               "name": "pregunta",
-              "value": "={{ $json.body.pregunta ?? $json.body.question ?? \"\" }}",
+              "value": "={{ $json.pregunta ?? $json.body?.pregunta ?? $json.body?.question ?? \"\" }}",
               "type": "string"
             },
             {
               "id": "respuestas_detalladas",
               "name": "respuestas_detalladas",
-              "value": "={{ $json.body.respuestasDetalladas ?? $json.body.respuestas_detalladas ?? [] }}",
+              "value": "={{ $json.respuestasDetalladas ?? $json.body?.respuestasDetalladas ?? $json.body?.respuestas_detalladas ?? [] }}",
               "type": "json"
             },
             {
               "id": "tech_field",
               "name": "technology",
-              "value": "={{ $json.body.technology ?? '' }}",
+              "value": "={{ $json.technology ?? $json.body?.technology ?? '' }}",
               "type": "string"
             },
             {
               "id": "topic_field",
               "name": "topic",
-              "value": "={{ $json.body.topic ?? '' }}",
+              "value": "={{ $json.topic ?? $json.body?.topic ?? '' }}",
               "type": "string"
             },
             {
               "id": "difficulty_field",
               "name": "difficulty",
-              "value": "={{ $json.body.difficulty ?? '' }}",
+              "value": "={{ $json.difficulty ?? $json.body?.difficulty ?? '' }}",
               "type": "string"
             },
             {
               "id": "score_promedio_field",
               "name": "score_promedio",
-              "value": "={{ $json.body.scorePromedio ?? $json.body.score_promedio ?? null }}",
+              "value": "={{ $json.scorePromedio ?? $json.body?.scorePromedio ?? $json.body?.score_promedio ?? null }}",
               "type": "number"
             },
             {
               "id": "nivel_estimado_field",
               "name": "nivel_estimado",
-              "value": "={{ $json.body.nivelEstimado ?? $json.body.nivel_estimado ?? '' }}",
+              "value": "={{ $json.nivelEstimado ?? $json.body?.nivelEstimado ?? $json.body?.nivel_estimado ?? '' }}",
               "type": "string"
             },
             {
               "id": "total_questions_field",
               "name": "total_questions",
-              "value": "={{ $json.body.totalQuestions ?? $json.body.total_questions ?? null }}",
+              "value": "={{ $json.totalQuestions ?? $json.body?.totalQuestions ?? $json.body?.total_questions ?? null }}",
               "type": "number"
             }
           ]
@@ -235,7 +235,7 @@
         "options": {
           "responseCode": 200
         },
-        "responseBody": "={{ (() => { try { return JSON.parse($(\"Message feedback\").item.json.message.content); } catch (e) { return { feedback: $(\"Message feedback\").item.json.message.content }; } })() }}"
+        "responseBody": "={{ (() => { try { const content = $('Message feedback').item.json.content; const text = content?.[0]?.text || ''; return JSON.parse(text); } catch (e) { return { feedback: $('Message feedback').item.json.content?.[0]?.text || 'Error al procesar' }; } })() }}"
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
@@ -413,6 +413,16 @@
           },
           "conditions": [
             {
+              "id": "is_final_check",
+              "leftValue": "={{ String($('Edit Fields').item.json.is_final ?? false) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals",
+                "singleValue": true
+              }
+            },
+            {
               "id": "c1d9c9d0-2b16-4f2c-9f05-efc6d0a0b101",
               "leftValue": "={{ String($('Edit Fields').item.json.id_session ?? '') }}",
               "rightValue": "",
@@ -421,39 +431,9 @@
                 "operation": "empty",
                 "singleValue": true
               }
-            },
-            {
-              "id": "c60c0f4b-86bd-4f7c-85c8-6739d2b9a1f5",
-              "leftValue": "={{ String($('Edit Fields').item.json.id_user ?? '') }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "a6a0f3f3-2c94-4015-9a94-3a7cc7e7d62c",
-              "leftValue": "={{ String($('Edit Fields').item.json.order_num ?? '') }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "b5f4d6b3-7cda-4c57-a7ef-0f6c0c4b2d78",
-              "leftValue": "={{ String($('Edit Fields').item.json.id_question ?? '') }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
             }
           ],
-          "combinator": "or"
+          "combinator": "and"
         },
         "options": {}
       },
@@ -470,7 +450,7 @@
       "parameters": {
         "conditions": {
           "options": {
-            "caseSensitive": true,
+            "caseSensitive": false,
             "leftValue": "",
             "typeValidation": "strict",
             "version": 3
@@ -478,10 +458,10 @@
           "conditions": [
             {
               "id": "is_final_condition",
-              "leftValue": "={{ String($(\"Edit Fields\").item.json.is_final ?? \"\").toLowerCase() }}",
-              "rightValue": "true",
+              "leftValue": "={{ $json.is_final }}",
+              "rightValue": true,
               "operator": {
-                "type": "string",
+                "type": "boolean",
                 "operation": "equals",
                 "singleValue": true
               }
@@ -674,7 +654,7 @@
       "main": [
         [
           {
-            "node": "If - final feedback",
+            "node": "If - missing required fields",
             "type": "main",
             "index": 0
           }
@@ -754,7 +734,7 @@
         ],
         [
           {
-            "node": "If - is a voice record",
+            "node": "If - final feedback",
             "type": "main",
             "index": 0
           }

@@ -212,11 +212,12 @@ export const createQuestionInstances = async (id_session, id_questions = []) => 
     }
 }
 
-export const newQuestionAnswered = async (id_user, answer, score, feedback, answered_at) => {
+export const newQuestionAnswered = async (id_user, id_question_instance, answer, score, feedback, answered_at) => {
     const query = `
-    insert into question_answered (id_user, answer, score, feedback, answered_at) values ($1, $2, $3, $4, $5) returning *;
+    insert into question_answered (id_user, id_question_instance, answer, score, feedback, answered_at)
+    values ($1, $2, $3, $4, $5, $6) returning *;
     `
-    const values = [id_user, answer, score, feedback, answered_at]
+    const values = [id_user, id_question_instance, answer, score, feedback, answered_at]
 
     try{
         const res = await pool.query(query, values);

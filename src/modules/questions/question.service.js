@@ -25,8 +25,8 @@ export const newInterviewQuestion = async (id_session, id_question, order_num) =
   return newInterviewQuestionRepo(id_session, id_question, order_num)
 }
 
-export const newQuestionAnswered = async(id_user, answer, score, feedback, answered_at) => {
-  return newQuestionAnsweredRepo(id_user, answer, score, feedback, answered_at)
+export const newQuestionAnswered = async(id_user, id_question_instance, answer, score, feedback, answered_at) => {
+  return newQuestionAnsweredRepo(id_user, id_question_instance, answer, score, feedback, answered_at)
 }
 
 export const createQuestionInstances = async (id_session, id_questions) => {

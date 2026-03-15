@@ -60,8 +60,8 @@ function renderDetail({ node, status, technology, map, progress }) {
   }
 
   const total = map?.length || 0;
-  const completed = progress?.length || 0;
-  const percent = total ? Math.round((completed / total) * 100) : 0;
+  const completedCount = progress?.completed?.length || 0;
+  const percent = total ? Math.round((completedCount / total) * 100) : 0;
 
   if (progressValue) progressValue.textContent = `${percent}%`;
   if (progressFill) progressFill.style.width = `${percent}%`;
@@ -84,11 +84,12 @@ function renderDetail({ node, status, technology, map, progress }) {
 function buildTopics(node, status, map, progress) {
   const prereq = map.find((item) => item.id === node.requires);
   const following = map.find((item) => item.requires === node.id);
-  const completed = progress.includes(node.id);
+  const completed = progress?.completed?.includes(node.id);
+  const unlocked = progress?.unlocked?.includes(node.id);
   const translatedStatus = t(`view.status_${status}`) || status.toUpperCase();
 
   return [
-    `${t("view.status")}: ${translatedStatus}${completed ? ` (${t("view.completed")})` : ""}`,
+    `${t("view.status")}: ${translatedStatus}${completed ? ` (${t("view.completed")})` : unlocked ? ` (${t("view.status_available")})` : ""}`,
     `${t("view.difficulty")}: ${node.difficulty}`,
     prereq ? `${t("view.prereq")}: ${prereq.title}` : `${t("view.prereq")}: ${t("view.none")}`,
     following

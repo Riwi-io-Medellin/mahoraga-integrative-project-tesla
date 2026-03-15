@@ -8,6 +8,8 @@ import {
   saveInterviewQuestionInstances,
   saveInterviewContext,
   saveInterviewSession,
+  saveQuestionAnswered,
+  endInterviewSession,
 } from "./services/interviewService.js";
 import { getN8nExtractionSnapshot, sendN8nAnswer, buildN8nAnswerPayload, ensureInterviewSessionId, extractAnswersAsKeyValuePairs, extractDetailedAnswers, buildInterviewAnalysisPrompt } from "./services/n8nBridge.js";
 import {
@@ -98,7 +100,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!sessionId) {
       const createdSession = await createInterviewSession({ context, user });
       sessionId = createdSession?.id_session || null;
-      context.sessionId = sessionId;
+      if (sessionId) {
+        context.sessionId = sessionId;
+        context.id_session = sessionId;
+      }
       saveInterviewContext(context);
     }
 
@@ -107,7 +112,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (sessionId && !session.sessionId) {
       session.sessionId = sessionId;
       saveInterviewSession(session);
-      await saveInterviewQuestionInstances({ id_session: sessionId, questions });
+      const savedInstances = await saveInterviewQuestionInstances({ id_session: sessionId, questions });
+      // persist map of question instances for later lookups
+      if (savedInstances?.created || Array.isArray(savedInstances)) {
+        const instances = savedInstances.created || savedInstances;
+        session.questionInstances = instances;
+        saveInterviewSession(session);
+      }
     }
     bindInterviewActions(session, context);
     renderCurrentQuestion(session, context);
@@ -250,6 +261,16 @@ async function handleTextSubmission({ session, context, answer }) {
   answerInput?.setAttribute("disabled", "true");
 
   try {
+    const storedUser = getLoggedInUser();
+    const id_user = storedUser?.id_user ?? context?.idUser ?? context?.id_user ?? null;
+    const currentQuestion = session.questions[session.currentIndex];
+    const id_question_instance =
+      currentQuestion?.id_question_instance ??
+      session?.questionInstances?.[session.currentIndex]?.id_question_instance ??
+      session?.questionInstances?.[currentQuestion?.id_question] ??
+      session.currentIndex + 1;
+    if (!id_question_instance) throw new Error("Falta id_question_instance");
+
     const response = await submitToN8n({
       session,
       context,
@@ -257,7 +278,6 @@ async function handleTextSubmission({ session, context, answer }) {
       audioBlob: null,
     });
 
-    const currentQuestion = session.questions[session.currentIndex];
     const resolvedText = response?.texto ?? answer;
     let metrics = response?.metrics || null;
     if (!metrics || Object.values(metrics).every((v) => v === 0)) {
@@ -267,6 +287,7 @@ async function handleTextSubmission({ session, context, answer }) {
     const weighted = calcularPuntaje(metrics, pesoLevel);
     session.answers[session.currentIndex] = {
       questionId: currentQuestion.id_question,
+      id_question_instance,
       answer: resolvedText,
       score: response?.puntaje ?? weighted.puntaje ?? null,
       reason: response?.razon ?? null,
@@ -276,6 +297,19 @@ async function handleTextSubmission({ session, context, answer }) {
     };
 
     saveInterviewSession(session);
+    // persist answered question
+    try {
+      await saveQuestionAnswered({
+        id_user,
+        id_question_instance,
+        answer: resolvedText,
+        score: session.answers[session.currentIndex].score ?? 0,
+        feedback: session.answers[session.currentIndex].reason ?? "Sin feedback",
+        answered_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn("No se pudo guardar question_answered:", err?.message || err);
+    }
     renderPendingReview(session, response);
     const voiceButton = document.getElementById("voiceRecordButton");
     if (voiceButton) voiceButton.disabled = true;
@@ -309,6 +343,16 @@ async function handleAudioSubmission({ session, context, audioBlob }) {
   }
 
   try {
+    const storedUser = getLoggedInUser();
+    const id_user = storedUser?.id_user ?? context?.idUser ?? context?.id_user ?? null;
+    const currentQuestion = session.questions[session.currentIndex];
+    const id_question_instance =
+      currentQuestion?.id_question_instance ??
+      session?.questionInstances?.[session.currentIndex]?.id_question_instance ??
+      session?.questionInstances?.[currentQuestion?.id_question] ??
+      session.currentIndex + 1;
+    if (!id_question_instance) throw new Error("Falta id_question_instance");
+
     const response = await submitToN8n({
       session,
       context,
@@ -316,7 +360,6 @@ async function handleAudioSubmission({ session, context, audioBlob }) {
       audioBlob,
     });
 
-    const currentQuestion = session.questions[session.currentIndex];
     const resolvedText = response?.texto || answerInput?.value?.trim() || "";
     let metrics = response?.metrics || null;
     if (!metrics || Object.values(metrics).every((v) => v === 0)) {
@@ -332,6 +375,7 @@ async function handleAudioSubmission({ session, context, audioBlob }) {
 
     session.answers[session.currentIndex] = {
       questionId: currentQuestion.id_question,
+      id_question_instance,
       answer: resolvedText,
       score: response?.puntaje ?? weighted.puntaje ?? null,
       reason: response?.razon ?? null,
@@ -342,6 +386,20 @@ async function handleAudioSubmission({ session, context, audioBlob }) {
 
     saveInterviewSession(session);
     renderPendingReview(session, response);
+
+    // persist answered question
+    try {
+      await saveQuestionAnswered({
+        id_user,
+        id_question_instance,
+        answer: resolvedText,
+        score: session.answers[session.currentIndex].score ?? 0,
+        feedback: session.answers[session.currentIndex].reason ?? "Sin feedback",
+        answered_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn("No se pudo guardar question_answered:", err?.message || err);
+    }
 
     const submitAnswer = document.getElementById("submitAnswer");
     const nextQuestion = document.getElementById("nextQuestion");
@@ -382,14 +440,15 @@ async function submitToN8n({ session, context, answerText, audioBlob }) {
     null;
   const id_question_instance =
     currentQuestion?.id_question_instance ??
+    session?.questionInstances?.find?.((qi) => qi.id_question === currentQuestion?.id_question)?.id_question_instance ??
+    session?.questionInstances?.find?.((qi) => qi.order_num === session.currentIndex + 1)?.id_question_instance ??
     session?.questionInstances?.[session.currentIndex]?.id_question_instance ??
-    session?.questionInstances?.[currentQuestion?.id_question] ??
-    session.currentIndex + 1;
+    null;
   const missing = [];
   if (!id_session) missing.push("id_session");
   if (!fallbackUser?.id_user) missing.push("id_user");
   if (!currentQuestion?.id_question) missing.push("id_question");
-  if (!(session.currentIndex + 1)) missing.push("order_num");
+  if (!id_question_instance) missing.push("id_question_instance");
   if (missing.length) {
     throw new Error(`Faltan campos obligatorios: ${missing.join(", ")}`);
   }
@@ -405,7 +464,17 @@ async function submitToN8n({ session, context, answerText, audioBlob }) {
     audio: null,
   });
 
-  return await sendN8nAnswer({ payload, audioBlob });
+  console.log("[n8n] Enviando payload a n8n", {
+    ...payload,
+    hasAudio: Boolean(audioBlob),
+    audioSize: audioBlob?.size || 0,
+  });
+
+  const n8nResponse = await sendN8nAnswer({ payload, audioBlob });
+
+  console.log("[n8n] Respuesta recibida de n8n", n8nResponse);
+
+  return n8nResponse;
 }
 
 function setSubmissionState({ busy }) {
@@ -582,6 +651,13 @@ async function renderInterviewSummary(session, context) {
     const id_session = ensured?.id_session || snapshot?.context?.id_session;
 
     if (id_session) {
+      const endedAt = new Date().toISOString();
+      try {
+        await endInterviewSession({ id_session, date_fin: endedAt });
+      } catch (err) {
+        console.warn("No se pudo registrar la hora de cierre de la entrevista:", err?.message || err);
+      }
+
       // Obtener respuestas en formato clave-valor y detallado
       const respuestasObjeto = extractAnswersAsKeyValuePairs({ session, context });
       const respuestasDetalladas = extractDetailedAnswers({ session, context });

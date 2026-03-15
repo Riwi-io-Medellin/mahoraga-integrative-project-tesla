@@ -5,6 +5,7 @@ import { renderRoadmap } from "./ui/roadmapRenderer.js";
 import { applyTranslations, t } from "./services/i18n.js";
 import { requireLoggedInUser } from "./services/sessionService.js";
 import { initDashboardIdentity } from "./ui/userIdentity.js";
+import { gameState } from "./state/gameState.js";
 
 function initRoadmapDrag() {
   const container = document.querySelector(".roadmap-container");
@@ -96,6 +97,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const user = requireLoggedInUser("../index.html");
   if (!user) return;
 
+  // Set default technology before any render to avoid empty state
+  setActiveTechnology("python");
+
+  // Initialize game state with user progress from database
+  // We need to wait for the progress to load before rendering
+  gameState.initProgress(user.id_user).then(() => {
+    // After progress is loaded, render the roadmap
+    renderRoadmap();
+  });
+
+  // Primer render mientras llega el progreso (muestra el roadmap con estado base)
+  renderRoadmap();
+
   applyTranslations(document);
   initRoadmapDrag();
   initSidebarToggle();
@@ -103,9 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initPhotoProfile();
   initDetailPanel();
   initDashboardIdentity();
-
-  setActiveTechnology("python");
-  renderRoadmap();
 
   let resizeRaf = null;
   window.addEventListener("resize", () => {
