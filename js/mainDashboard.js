@@ -6,6 +6,7 @@ import { applyTranslations, t } from "./services/i18n.js";
 import { requireLoggedInUser } from "./services/sessionService.js";
 import { initDashboardIdentity } from "./ui/userIdentity.js";
 import { gameState } from "./state/gameState.js";
+import { initDashboardProgressUI } from "./services/dashboardService.js";
 
 function initRoadmapDrag() {
   const container = document.querySelector(".roadmap-container");
@@ -111,6 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderRoadmap();
 
   applyTranslations(document);
+  initDashboardProgressUI();
   initRoadmapDrag();
   initSidebarToggle();
   initDashboardRenderer();

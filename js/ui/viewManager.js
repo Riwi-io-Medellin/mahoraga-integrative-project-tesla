@@ -60,8 +60,10 @@ function renderDetail({ node, status, technology, map, progress }) {
   }
 
   const total = map?.length || 0;
+  const unlockedCount = progress?.unlocked?.length || 0;
   const completedCount = progress?.completed?.length || 0;
-  const percent = total ? Math.round((completedCount / total) * 100) : 0;
+  const count = Math.max(unlockedCount, completedCount);
+  const percent = total ? Math.round((count / total) * 100) : 0;
 
   if (progressValue) progressValue.textContent = `${percent}%`;
   if (progressFill) progressFill.style.width = `${percent}%`;
