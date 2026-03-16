@@ -1,4 +1,5 @@
 import { applyTranslations, t } from "./services/i18n.js";
+import { API_BASE_URL } from "./services/apiConfig.js";
 import {
   clearInterviewSession,
   createInterviewSession,
@@ -15,7 +16,13 @@ import {
   getLoggedInUser,
   requireLoggedInUser,
 } from "./services/sessionService.js";
-import { buildN8nAnswerPayload, ensureInterviewSessionId, sendN8nAnswer } from "./services/n8nBridge.js";
+import {
+  buildN8nAnswerPayload,
+  ensureInterviewSessionId,
+  sendN8nAnswer,
+  extractAnswersAsKeyValuePairs,
+  extractDetailedAnswers,
+} from "./services/n8nBridge.js";
 import { gameState } from "./state/gameState.js";
 
 // Helpers para puntajes ponderados
@@ -151,6 +158,23 @@ function buildPerQuestionFeedback({ questions = [], answers = [] }) {
       respuesta: entry.answer || "",
     };
   });
+}
+
+// Genera un paquete detallado local cuando n8n falla o responde vacío
+function buildLocalDetailedFeedback({ session, summary }) {
+  const scoreLabel = summary?.score ?? 0;
+  const local = buildLocalInsights({ answers: session?.answers || [], scoreLabel });
+  return {
+    puntaje_final: scoreLabel,
+    fortalezas: local.fortalezas,
+    debilidades: local.debilidades,
+    recomendaciones: local.recomendaciones,
+    feedback: summary?.feedback || local.resumen,
+    preguntas: buildPerQuestionFeedback({
+      questions: session?.questions || [],
+      answers: session?.answers || [],
+    }),
+  };
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -348,10 +372,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     let detailed = null;
+    let user = null;
+    let id_session = null;
     try {
-      const user = getLoggedInUser();
+      user = getLoggedInUser();
       const ensured = await ensureInterviewSessionId({ context, user });
-      const id_session = ensured?.id_session || session?.sessionId || null;
+      id_session = ensured?.id_session || session?.sessionId || null;
 
       if (id_session) {
         const endedAt = new Date().toISOString();
@@ -361,26 +387,22 @@ document.addEventListener("DOMContentLoaded", () => {
           console.warn("No se pudo registrar la hora de cierre de la entrevista:", err?.message || err);
         }
 
-        const respuestas = session.questions.map((question, index) => {
-          const entry = session.answers[index] || {};
-          return {
-            pregunta: question?.question_text ?? "",
-            respuesta: entry.answer ?? "",
-            puntaje: entry.score ?? entry.puntaje ?? 0,
-            razon: entry.reason ?? entry.razon ?? "",
-            metrics: entry.metrics ?? null,
-          };
-        });
+        const respuestas = extractAnswersAsKeyValuePairs({ session, context });
 
-        const respuestasDetalladas = session.questions.map((question, index) => {
-          const entry = session.answers[index] || {};
+        const respuestasDetalladas = extractDetailedAnswers({ session, context }).map((item, index) => {
+          const question = session.questions?.[index];
+          const metrics = session.answers?.[index]?.metrics ?? null;
+          const resolvedInstance =
+            item.id_question_instance ||
+            question?.id_question_instance ||
+            session?.questionInstances?.find?.((qi) => qi.id_question === question?.id_question)?.id_question_instance ||
+            session?.questionInstances?.find?.((qi) => qi.order_num === index + 1)?.id_question_instance ||
+            null;
+
           return {
-            orden: index + 1,
-            pregunta: question?.question_text ?? "",
-            respuesta: entry.answer ?? "",
-            puntaje: entry.score ?? entry.puntaje ?? 0,
-            razon: entry.reason ?? entry.razon ?? "",
-            metrics: entry.metrics ?? null,
+            ...item,
+            id_question_instance: resolvedInstance,
+            metrics: metrics || item.metrics || null,
           };
         });
 
@@ -396,6 +418,7 @@ document.addEventListener("DOMContentLoaded", () => {
           id_session,
           id_user: user?.id_user ?? null,
           is_final: true,
+          language: context?.languageId ?? context?.language ?? 1,
           respuestas,
           respuestasDetalladas,
           technology: context?.technology ?? "",
@@ -407,14 +430,24 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         detailed = await sendN8nAnswer({ payload });
+        // Si n8n no regresa datos útiles, genera feedback local para no dejar vacío
+        const hasUseful =
+          detailed &&
+          (detailed.puntaje_final ||
+            (Array.isArray(detailed?.fortalezas) && detailed.fortalezas.length) ||
+            (Array.isArray(detailed?.preguntas) && detailed.preguntas.length));
+        if (!hasUseful || detailed?.feedback === "Error al procesar") {
+          detailed = buildLocalDetailedFeedback({ session, summary });
+        }
       }
     } catch (error) {
       console.error("No se pudo obtener feedback detallado de n8n:", error);
+      detailed = buildLocalDetailedFeedback({ session, summary });
     }
 
     // Procesar resultado de entrevista para desbloquear niveles
     try {
-      const progressResponse = await fetch(`${API_BASE_URL}/user/process-interview`, {
+      const progressResponse = await fetch(`${API_BASE_URL}/users/process-interview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

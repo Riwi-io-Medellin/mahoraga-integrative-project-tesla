@@ -27,17 +27,26 @@ function buildForwardHeaders({ contentType }) {
 
 function parseResponseBody(response, buffer) {
   const contentType = response.headers.get('content-type') || ''
-  const isJson = contentType.toLowerCase().includes('application/json')
+  const text = buffer.toString('utf-8')
+  const looksJson = contentType.toLowerCase().includes('application/json')
+  const tryParse = () => {
+    try {
+      return JSON.parse(text)
+    } catch (_) {
+      return null
+    }
+  }
 
-  if (!isJson) {
-    return { isJson: false, body: buffer }
+  if (!looksJson) {
+    const maybe = tryParse()
+    if (maybe) return { isJson: true, body: maybe, rawText: text }
+    return { isJson: false, body: text, rawText: text }
   }
 
   try {
-    const text = buffer.toString('utf-8')
-    return { isJson: true, body: text ? JSON.parse(text) : {} }
+    return { isJson: true, body: text ? JSON.parse(text) : {}, rawText: text }
   } catch {
-    return { isJson: false, body: buffer }
+    return { isJson: false, body: text, rawText: text }
   }
 }
 
@@ -90,12 +99,28 @@ export const forwardVoiceFeedback = async ({ request, isMultipart, jsonBody }) =
 
   const parsed = parseResponseBody(response, buffer)
 
+  // Si n8n responde con estructura de mensajes (content[0].text), intenta desanidar
+  let normalized = parsed
+  try {
+    const content = parsed?.body?.content
+    const text = Array.isArray(content) ? content?.[0]?.text : null
+    if (text) {
+      const unwrapped = JSON.parse(text)
+      normalized = { isJson: true, body: unwrapped, rawText: parsed?.rawText || text }
+    }
+  } catch (err) {
+    // ignore unwrap errors
+  }
+
   console.log('[voice] n8n response status:', response.status)
-  console.log('[voice] n8n response body:', parsed?.body)
+  console.log('[voice] n8n response body:', normalized?.body)
+  if (normalized?.rawText && normalized?.rawText !== normalized?.body) {
+    console.log('[voice] n8n raw response text:', normalized.rawText)
+  }
 
   // If n8n returns missing_required_fields, return mock success to allow interview to continue
   // This is a temporary workaround while we fix n8n
-  if (parsed?.body?.error === 'missing_required_fields') {
+  if (normalized?.body?.error === 'missing_required_fields') {
     console.log('[voice] n8n returned validation error, returning mock success')
     return {
       status: 200,
@@ -117,6 +142,6 @@ export const forwardVoiceFeedback = async ({ request, isMultipart, jsonBody }) =
       'content-type': response.headers.get('content-type') || undefined,
       'content-disposition': response.headers.get('content-disposition') || undefined,
     },
-    ...parsed,
+    ...normalized,
   }
 }
