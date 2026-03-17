@@ -192,7 +192,7 @@ npm run dev
 
 Once the server is running, open your browser and go to:
 
-http://localhost:3000
-
 And enjoy
-
+http://localhost:3000
+deploy
+https://mahoraga-deploy-production.up.railway.app/
